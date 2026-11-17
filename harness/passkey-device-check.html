@@ -1,0 +1,73 @@
+<!doctype html>
+<!--
+  Cubby S1 device check. NOT DEPLOYED. Open only on an origin Henry approves
+  (localhost works on Windows; phones need an HTTPS origin). No third-party
+  scripts, no network calls: it only talks to the platform authenticator and
+  shows a JSON blob to copy back into scripts/device-check.ts.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Cubby passkey device check</title>
+<style>
+  body { font: 16px/1.4 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+  button { font: inherit; min-height: 44px; padding: 0 1rem; margin: .25rem 0; }
+  textarea, input { width: 100%; font: 13px ui-monospace, monospace; }
+  textarea { height: 12rem; }
+</style>
+</head>
+<body>
+<h1>Cubby passkey device check</h1>
+<p>1. Label this device, 2. create a test passkey, 3. sign the test challenge, 4. copy the result.</p>
+<label>Device label <input id="label" placeholder="iPhone 15, iOS 26.1, Safari"></label>
+<label>Test challenge (hex, from <code>scripts/device-check.ts --challenge</code>) <input id="challenge"></label>
+<p><button id="create">Create test passkey</button> <button id="sign">Sign test challenge</button> <button id="copy">Copy result</button></p>
+<p id="status" role="status"></p>
+<textarea id="out" readonly></textarea>
+<script>
+const $ = (id) => document.getElementById(id);
+const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+const hex = (s) => Uint8Array.from(s.trim().match(/../g) || [], (h) => parseInt(h, 16));
+const say = (m) => { $('status').textContent = m; };
+$('create').onclick = async () => {
+  try {
+    const cred = await navigator.credentials.create({ publicKey: {
+      rp: { name: 'Cubby device check', id: location.hostname },
+      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'cubby-device-check', displayName: 'Cubby device check' },
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+      authenticatorSelection: { userVerification: 'required', residentKey: 'preferred' },
+    } });
+    const spki = cred.response.getPublicKey();
+    localStorage.setItem('cubby-check', JSON.stringify({ id: b64u(cred.rawId), spki: b64u(spki) }));
+    say('Test passkey created. Now sign the test challenge.');
+  } catch (e) { say('Create failed: ' + e.name + ': ' + e.message); }
+};
+$('sign').onclick = async () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('cubby-check') || 'null');
+    if (!saved) return say('Create a test passkey first.');
+    const challenge = hex($('challenge').value);
+    if (challenge.length !== 32) return say('The challenge must be 64 hex characters.');
+    const a = await navigator.credentials.get({ publicKey: {
+      challenge, rpId: location.hostname, userVerification: 'required',
+      allowCredentials: [{ type: 'public-key', id: unb64u(saved.id) }],
+    } });
+    $('out').value = JSON.stringify({
+      label: $('label').value || navigator.userAgent,
+      userAgent: navigator.userAgent,
+      publicKeySpki: saved.spki,
+      authenticatorData: b64u(a.response.authenticatorData),
+      clientDataJSON: b64u(a.response.clientDataJSON),
+      signature: b64u(a.response.signature),
+    }, null, 2);
+    say('Signed. Copy the result and send it to Hack Builder.');
+  } catch (e) { say('Sign failed: ' + e.name + ': ' + e.message); }
+};
+$('copy').onclick = async () => { await navigator.clipboard.writeText($('out').value); say('Copied.'); };
+</script>
+</body>
+</html>

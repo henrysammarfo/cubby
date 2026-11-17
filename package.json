@@ -1,0 +1,26 @@
+{
+  "name": "cubby",
+  "version": "1.0.0",
+  "description": "Cubby: passkey (WebAuthn P-256) signing gate for Bitcoin Cash covenants",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vitest run",
+    "size": "tsx scripts/report.ts"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "@bitauth/libauth": "3.1.0-next.8",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "private": true
+}
