@@ -160,6 +160,18 @@ describe('Broadcast guards', () => {
     expect(await second).toBe('ab'.repeat(32));
     expect(calls).toBe(1);
   });
+
+  it('does not keep a refused broadcast, so the same transaction can be tried again later', async () => {
+    let calls = 0;
+    vi.stubGlobal('fetch', async () => {
+      calls += 1;
+      if (calls <= 3) return new Response(JSON.stringify({ error: 'non-BIP68-final' }), { status: 400, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ txid: 'ef'.repeat(32) }), { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    await expect(broadcastTransaction(main, '22'.repeat(20))).rejects.toThrow();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await broadcastTransaction(main, '22'.repeat(20))).toBe('ef'.repeat(32));
+  });
 });
 
 describe('Security headers', () => {
@@ -170,6 +182,9 @@ describe('Security headers', () => {
     expect(config).toContain("source: '/:path*'");
     expect(src).toContain("frame-ancestors 'none'");
     expect(src).toContain("default-src 'self'");
+    // Without this the whole app crashes: libauth needs WebAssembly. JS eval stays blocked.
+    expect(src).toContain("script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'");
+    expect(src).not.toContain("'unsafe-eval'\"");
     expect(src).toContain('wss://relay.riften.net:443');
     expect(src).toContain('publickey-credentials-get=(self)');
     expect(src).toContain('publickey-credentials-create=(self)');
