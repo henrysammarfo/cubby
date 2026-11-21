@@ -1,0 +1,4 @@
+artifacts/solidcash/
+cache/solidcash/
+node_modules/
+.scratch/
