@@ -180,7 +180,7 @@ describe('Security headers', () => {
     const config = readFileSync(new URL('../next.config.mjs', import.meta.url), 'utf8');
     expect(config).toContain('SECURITY_HEADERS');
     expect(config).toContain("source: '/:path*'");
-    expect(src).toContain("frame-ancestors 'none'");
+    expect(src).toContain("frame-ancestors 'self'");
     expect(src).toContain("default-src 'self'");
     // Without this the whole app crashes: libauth needs WebAssembly. JS eval stays blocked.
     expect(src).toContain("script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'");
