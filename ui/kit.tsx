@@ -35,7 +35,8 @@ export type TabKey = (typeof TABS)[number][0];
 
 const qkeep = (q: URLSearchParams) => {
   const demo = q.get('demo') === '1' || q.get('shot') === '1';
-  return demo ? '?demo=1' : '';
+  if (!demo) return '';
+  return q.get('replay') === 'spent' ? '?demo=1&replay=spent' : '?demo=1';
 };
 
 export function Tabbar({ on }: { on: TabKey }) {
@@ -211,7 +212,8 @@ export const copy = async (text: string, ok = 'Copied') => {
 
 export const suffix = (search: string) => {
   const q = new URLSearchParams(search);
-  return q.get('demo') === '1' || q.get('shot') === '1' ? '?demo=1' : '';
+  if (!(q.get('demo') === '1' || q.get('shot') === '1')) return '';
+  return q.get('replay') === 'spent' ? '?demo=1&replay=spent' : '?demo=1';
 };
 
 export const useDemoSuffix = () => {

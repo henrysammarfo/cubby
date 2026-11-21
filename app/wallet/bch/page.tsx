@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { AppShell, BackNav, Money, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
 import { useSession } from '@/lib/client/session';
 import { useBalances, usePrice } from '@/lib/client/data';
 import { fmtBch, fmtFiat, satsToBch } from '@/lib/client/format';
+import { demoReplayFromSearch, demoReplaySats } from '@/lib/demo';
 
 function Chart({ points }: { points: { t: number; p: number }[] }) {
   const w = 320, h = 160, padX = 2, padY = 16;
@@ -45,7 +47,9 @@ function Chart({ points }: { points: { t: number; p: number }[] }) {
 function CoinInner() {
   const s = useSession();
   const suffix = useDemoSuffix();
-  const { sats } = useBalances(s.address, s.networkId);
+  const replay = demoReplayFromSearch(useSearchParams());
+  const { sats: liveSats } = useBalances(s.demo ? null : s.address, s.networkId);
+  const sats = s.demo ? demoReplaySats(replay) : liveSats;
   const price = usePrice();
   const [points, setPoints] = useState<{ t: number; p: number }[] | null>(null);
   useEffect(() => {

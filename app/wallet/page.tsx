@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowDownLeft, ArrowUpRight, Bell, ChevronRight, PiggyBank, Plus, Search, Wallet as WalletIcon } from 'lucide-react';
 import { AppShell, Money, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
@@ -8,12 +9,16 @@ import { ActivityList } from '@/ui/Activity';
 import { useSession } from '@/lib/client/session';
 import { useActivity, useBalances, usePrice } from '@/lib/client/data';
 import { fmtBch, fmtFiat, shortAddr, satsToBch } from '@/lib/client/format';
+import { demoReplayFromSearch, demoReplaySats } from '@/lib/demo';
 
 function WalletInner() {
   const s = useSession();
   const suffix = useDemoSuffix();
-  const { sats, error } = useBalances(s.address, s.networkId);
-  const { txs } = useActivity(s.address, s.networkId, s.demo);
+  const q = useSearchParams();
+  const replay = demoReplayFromSearch(q);
+  const { sats: liveSats, error } = useBalances(s.demo ? null : s.address, s.networkId);
+  const sats = s.demo ? demoReplaySats(replay) : liveSats;
+  const { txs } = useActivity(s.address, s.networkId, s.demo, replay);
   const price = usePrice();
   const [query, setQuery] = useState('');
   const [searchOn, setSearchOn] = useState(false);
@@ -38,7 +43,13 @@ function WalletInner() {
         </div>
       </header>
       <main className="body wallet">
-        {s.demo && <div className="demo-banner">This demo box is empty now because the proof spend already settled. It received 0.01016741 BCH and sent 0.01005741 BCH on the test network. Not a box on this phone.</div>}
+        {s.demo && (
+          <div className="demo-banner">
+            {replay === 'funded'
+              ? 'Test network replay. This is the box just after the real deposit, not a box on this phone. The spend has already happened on the test network.'
+              : 'Test network replay. The proof spend already settled, so this view is empty now. Not a box on this phone.'}
+          </div>
+        )}
         {searchOn && (
           <div className="field">
             <Search size={16} aria-hidden />
@@ -51,8 +62,9 @@ function WalletInner() {
               <div className="pc-lab">Total balance</div>
               <div className="pc-v">{ready ? <Money sats={sats!} /> : <span className="skel" style={{ display: 'inline-block', width: '8rem', height: '2.2rem' }} />}</div>
               {fiat !== null && <div className="pc-fiat">About {fmtFiat(fiat)} · CoinGecko</div>}
-              {s.demo && ready && sats === 0n && <div className="pc-fiat">Empty after the proof spend</div>}
-              {price?.change24h != null && (
+              {s.demo && replay === 'funded' && <div className="pc-fiat">After the deposit, before the spend</div>}
+              {s.demo && replay === 'spent' && <div className="pc-fiat">Empty after the proof spend</div>}
+              {price?.change24h != null && ready && sats !== 0n && !s.demo && (
                 <div className={'pc-chg ' + (price.change24h >= 0 ? 'up' : 'dn')}>
                   {price.change24h >= 0 ? '+' : ''}{price.change24h.toFixed(2)}% today
                 </div>
@@ -66,6 +78,9 @@ function WalletInner() {
             <Link href={'/connect' + suffix}><WalletIcon size={16} aria-hidden />Connect</Link>
           </div>
         </section>
+        {s.demo && replay === 'funded' && (
+          <Link className="btn big" href={'/send?demo=1&sheet=confirm'} style={{ marginTop: '.15rem' }}>See the proof spend</Link>
+        )}
 
         <div className="ghead"><b>Tokens</b></div>
         {showBch && (
@@ -74,7 +89,7 @@ function WalletInner() {
               <span className="logo">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/brand/bitcoin-cash-circle.svg" alt="" /></span>
               <span className="rn">
                 <span className="nm">Bitcoin Cash</span>
-                {price?.change24h != null
+                {price?.change24h != null && ready && sats !== 0n && !s.demo
                   ? <span className={'chg ' + (price.change24h >= 0 ? 'up' : 'dn')}>{price.change24h >= 0 ? '+' : ''}{price.change24h.toFixed(2)}%</span>
                   : <span className="sb">{s.network.label}</span>}
               </span>

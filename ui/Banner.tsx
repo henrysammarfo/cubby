@@ -2,11 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { EMBER_TOKEN_ADDRESS } from '@/src/banner';
+import { DECK_HREF, EMBER_TOKEN_ADDRESS, REPO_URL } from '@/src/banner';
 import { copy } from './kit';
 
-const WIDGET = 'https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing';
-const REPO = 'https://github.com/henrysammarfo/cubby';
 const FULL_ON = new Set(['/', '/film']);
 
 function CopyEmber({ compact = false }: { compact?: boolean }) {
@@ -50,11 +48,11 @@ export function BlazeBanner() {
       <div className="blaze" role="region" aria-label="BLAZE 2026 entry">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <span className="mark"><img src="/logo/cubby.svg" alt="" width={22} height={22} /><span className="pill">BLAZE 2026 ENTRY</span></span>
-        <a className="stub" href={WIDGET} target="_blank" rel="noreferrer">
+        <Link className="stub" href={DECK_HREF}>
           <b>Widget Factory intro</b>
-          <span className="meta">Our intro deck</span>
-        </a>
-        <a className="stub" href={REPO} target="_blank" rel="noreferrer">
+          <span className="meta">8-slide intro on this site</span>
+        </Link>
+        <a className="stub" href={REPO_URL} target="_blank" rel="noreferrer">
           <b>Source code</b>
           <span className="meta">henrysammarfo/cubby</span>
         </a>
@@ -66,11 +64,9 @@ export function BlazeBanner() {
           <CopyEmber />
         </div>
       </div>
-      <p className="blaze-note">Built fresh during BLAZE, first commit <a href={REPO + '/commit/18c652e'} target="_blank" rel="noreferrer">17 Nov</a>.</p>
+      <p className="blaze-note">Built fresh during BLAZE, first commit <a href={REPO_URL + '/commit/18c652e'} target="_blank" rel="noreferrer">17 Nov</a>.</p>
     </div>
   );
 }
 
-export const WIDGET_FACTORY_HREF = WIDGET;
-export const REPO_HREF = REPO;
-export { EMBER_TOKEN_ADDRESS };
+export { DECK_HREF, EMBER_TOKEN_ADDRESS, REPO_URL };

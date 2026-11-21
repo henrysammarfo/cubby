@@ -19,7 +19,7 @@ function SuccessInner() {
       <main className="body welcome">
         <VerifiedBadge label="Payment sent" />
         <h1>Transaction successful</h1>
-        <p className="lede">Your payment was sent.</p>
+        <p className="lede">{s.demo && !s.vault ? 'Replay of the completed test-network proof spend. This is not a new payment from this phone.' : 'Your payment was sent.'}</p>
         <section className="group card" style={{ width: '100%', textAlign: 'left' }}>
           <div className="cell"><span>Amount</span><span className="cv">{fmtBch(amount)} BCH</span></div>
           <div className="cell"><span>Status</span><span className="cv">Sent</span></div>

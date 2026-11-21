@@ -52,6 +52,8 @@
 .lp-doc p,.lp-doc li{margin-top:.75rem;color:var(--ink-2);line-height:1.65}
 .lp-doc ul{padding-left:1.2rem}
 .lp-doc a{color:var(--accent-text);text-decoration:underline;text-underline-offset:2px}
+.lp-doc a.btn{color:var(--on-accent);text-decoration:none}
+.lp-doc a.btn.ghost{color:var(--ink)}
 @media (min-width:640px){
   .lp-how-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:2rem;border-top:0}
   .lp-how-steps li{grid-template-columns:1fr;padding:1.25rem 0 0;border-bottom:0;border-top:1px solid var(--sep)}
@@ -80,3 +82,10 @@
 .doc-links a:hover{color:var(--ink)}
 .lp-doc .doc-links a{text-decoration:none;color:var(--ink-3)}
 .lp-doc .upd{letter-spacing:.04em;text-transform:uppercase;font-weight:650;font-size:.75rem}
+
+.deck-preview{display:block;width:100%;height:auto}
+.deck-frame{display:none;width:100%;height:min(70vh,36rem);border:0;background:#0B0B0F}
+@media (min-width:900px){
+  .deck-preview{display:none}
+  .deck-frame{display:block}
+}

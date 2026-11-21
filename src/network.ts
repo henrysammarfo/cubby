@@ -24,6 +24,18 @@ export const VAULT_SPEND_FEE_SATS = 11_000n;
 export const RECOMMENDED_FUND_SATS = 20_000n;
 export const DUST_SATS = 546n;
 
+/**
+ * Single switch for main-network sends. Leave false until Henry approves the
+ * exact 20,000 sat funding (deposit plus fees) and we have the receive address.
+ * Flip this to true, redeploy, then follow docs/MAINNET-RUNBOOK.md. Default OFF.
+ * Do not spend on the main network while this is false.
+ */
+export const MAINNET_SEND_ENABLED = false;
+/** What Henry should send to the box, covering the deposit and the spend fee. */
+export const MAINNET_APPROVED_FUND_SATS = RECOMMENDED_FUND_SATS;
+/** Largest amount a main-network send may pay to the destination (20,000 minus the 11,000 unit fee). */
+export const MAINNET_PER_SPEND_CAP_SATS = MAINNET_APPROVED_FUND_SATS - VAULT_SPEND_FEE_SATS;
+
 export const NETWORKS: Record<NetworkId, Network> = {
   chipnet: {
     id: 'chipnet',
@@ -48,7 +60,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     watchtowerBase: 'https://watchtower.cash/api',
     recommendedFundSats: RECOMMENDED_FUND_SATS,
     vaultSpendFeeSats: VAULT_SPEND_FEE_SATS,
-    allowBroadcast: false,
+    allowBroadcast: MAINNET_SEND_ENABLED,
   },
 };
 
@@ -64,3 +76,34 @@ export const explorerTxUrl = (network: Network, txid: string): string =>
 
 export const explorerAddressUrl = (network: Network, address: string): string =>
   network.explorerAddress.replace('{address}', address);
+
+/** Guards a send. On the main network this also enforces the flag and the per-spend cap. */
+export const assertSpendAllowed = (
+  network: Network,
+  amountSats: bigint,
+  vaultSats: bigint,
+  sendEnabled = MAINNET_SEND_ENABLED,
+): void => {
+  if (network.id === 'mainnet' && !sendEnabled) {
+    throw new Error('Sending on the main network stays off until it is approved.');
+  }
+  if (amountSats < DUST_SATS) {
+    throw new Error(`That send is too small. The smallest amount is ${DUST_SATS} units.`);
+  }
+  const fee = network.vaultSpendFeeSats;
+  if (vaultSats < fee + DUST_SATS) {
+    throw new Error(`The box only holds ${vaultSats} units, but a send needs about ${fee + DUST_SATS} (fee ${fee} plus a small leftover). Put at least ${network.recommendedFundSats} units in first.`);
+  }
+  const maxSend = vaultSats - fee;
+  if (amountSats > maxSend) {
+    throw new Error(`The box only has ${maxSend} units to send after the ${fee} unit network fee.`);
+  }
+  if (network.id === 'mainnet') {
+    if (amountSats > MAINNET_PER_SPEND_CAP_SATS) {
+      throw new Error(`Main network sends are capped at ${MAINNET_PER_SPEND_CAP_SATS} units (the approved 20,000 unit total minus the 11,000 unit fee).`);
+    }
+    if (amountSats + fee > MAINNET_APPROVED_FUND_SATS) {
+      throw new Error('This send would go past the approved 20,000 unit total (deposit plus fees).');
+    }
+  }
+};

@@ -12,7 +12,8 @@ import { assertNetworkAddress, addressToLocking } from '@/src/address';
 import { broadcastTransaction, utxosFromApi } from '@/src/chain';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '@/src/vault-spend';
 import { explainWebAuthnError, requestAssertion, vaultFromStored } from '@/web/passkey';
-import { DUST_SATS } from '@/src/network';
+import { assertSpendAllowed, DUST_SATS } from '@/src/network';
+import { DEMO_SENT_SATS, DEMO_SPEND, DEMO_SPEND_TO, demoReplayFromSearch, demoReplaySats } from '@/lib/demo';
 
 function parseBch(value: string): bigint | null {
   const t = value.trim();
@@ -28,10 +29,13 @@ function SendInner() {
   const router = useRouter();
   const suffix = useDemoSuffix();
   const shot = useSearchParams();
-  const { sats } = useBalances(s.address, s.networkId);
+  const { sats: liveSats } = useBalances(s.demo ? null : s.address, s.networkId);
+  const replay = demoReplayFromSearch(shot);
+  const sats = s.demo ? demoReplaySats(replay === 'spent' ? 'spent' : 'funded') : liveSats;
   const price = usePrice();
-  const [amount, setAmount] = useState(shot.get('sheet') === 'confirm' ? '0.01005741' : '');
-  const [dest, setDest] = useState(shot.get('sheet') === 'confirm' ? 'bchtest:qpl93ln6r425c60fqhc25sf4sh59fmwwrufym39tj0' : (shot.get('to') ?? ''));
+  const demoShot = shot.get('demo') === '1' || shot.get('shot') === '1' || shot.get('sheet') === 'confirm';
+  const [amount, setAmount] = useState(demoShot ? '0.01005741' : '');
+  const [dest, setDest] = useState(demoShot ? DEMO_SPEND_TO : (shot.get('to') ?? ''));
   const [err, setErr] = useState<string | null>(null);
   const [pick, setPick] = useState(shot.get('sheet') === 'assets');
   const [confirm, setConfirm] = useState(shot.get('sheet') === 'confirm');
@@ -44,6 +48,7 @@ function SendInner() {
   const openConfirm = () => {
     setErr(null);
     if (!s.vault && !s.demo) { setErr('Create a box first.'); return; }
+    if (s.demo && !s.vault) { setConfirm(true); return; }
     if (!s.network.allowBroadcast) { setErr('Sending on the main network stays off until it is approved.'); return; }
     const d = dest.trim();
     try { assertNetworkAddress(d, s.network); }
@@ -53,6 +58,8 @@ function SendInner() {
       setErr(`Enter an amount between ${fmtBch(DUST_SATS)} and ${fmtBch(max)} BCH.`);
       return;
     }
+    try { if (!s.demo) assertSpendAllowed(s.network, parsed, sats ?? 0n); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'This send is not allowed.'); return; }
     setConfirm(true);
   };
 
@@ -60,11 +67,11 @@ function SendInner() {
     setErr(null); setBusy(true);
     try {
       if (s.demo && !s.vault) {
-        setErr('This is a demo box. Create your own box to send for real.');
-        setBusy(false);
+        router.push(`/send/success?demo=1&txid=${DEMO_SPEND}&amount=${String(DEMO_SENT_SATS)}&replay=spent`);
         return;
       }
       if (!s.vault) throw new Error('Create a box first.');
+      assertSpendAllowed(s.network, parsed!, sats ?? 0n);
       if (!s.network.allowBroadcast) throw new Error('Sending on the main network stays off until it is approved.');
       const utxos = await utxosFromApi(s.vault.address, s.network);
       const vaultUtxo = (utxos ?? []).slice().sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
@@ -108,7 +115,7 @@ function SendInner() {
             <div className="cell"><span>Total</span><span className="cv">{parsed !== null ? `${fmtBch(parsed + fee)} BCH` : '—'}</span></div>
           </section>
           {err && <p className="errline" role="alert">{err}</p>}
-          <button className="btn big" type="button" disabled={busy} onClick={() => void onSend()}>Confirm and send</button>
+          <button className="btn big" type="button" disabled={busy} onClick={() => void onSend()}>{s.demo && !s.vault ? 'See the proof receipt' : 'Confirm and send'}</button>
         </Sheet>
       </>
     }>

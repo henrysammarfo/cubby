@@ -9,6 +9,7 @@ const CHROME = '/usr/bin/google-chrome';
 const ROUTES: { name: string; path: string }[] = [
   { name: 'landing', path: '/' },
   { name: 'film', path: '/film' },
+  { name: 'deck', path: '/deck' },
   { name: 'welcome-splash', path: '/welcome?demo=1&step=splash' },
   { name: 'welcome-slides', path: '/welcome?demo=1&step=slides' },
   { name: 'welcome', path: '/welcome?demo=1&step=hello' },
@@ -42,11 +43,13 @@ const prepare = async (page: Page, name: string) => {
       v.style.display = 'none';
     });
   }).catch(() => undefined);
-  if (name === 'landing' || name === 'film') {
+  if (name === 'landing' || name === 'film' || name === 'deck') {
     if (name === 'landing') {
       await page.getByText('A box only your face').first().waitFor({ timeout: 15000 });
-    } else {
+    } else if (name === 'film') {
       await page.getByText('The film').first().waitFor({ timeout: 15000 });
+    } else {
+      await page.getByText('Cubby intro').first().waitFor({ timeout: 15000 });
     }
     const videos = await page.locator('video').count();
     if (videos > 0) throw new Error(`${name} mounted a <video> before play, which crashes WebKit`);

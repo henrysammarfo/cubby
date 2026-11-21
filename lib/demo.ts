@@ -8,3 +8,30 @@ export const DEMO_DEPOSIT_SATS = 1_016_741n;
 export const DEMO_SENT_SATS = 1_005_741n;
 export const DEMO_FEE_SATS = 11_000n;
 export const DEMO_TIME = 1_795_272_646;
+
+export type DemoReplay = 'funded' | 'spent';
+
+export const demoReplayFromSearch = (q: { get: (k: string) => string | null }): DemoReplay =>
+  q.get('replay') === 'spent' ? 'spent' : 'funded';
+
+export const demoReplaySats = (step: DemoReplay): bigint => (step === 'spent' ? 0n : DEMO_DEPOSIT_SATS);
+
+export const demoReplayTxs = (step: DemoReplay) => {
+  const deposit = {
+    txid: DEMO_DEPOSIT,
+    kind: 'in' as const,
+    satoshis: DEMO_DEPOSIT_SATS,
+    time: DEMO_TIME,
+    confirmations: 162,
+  };
+  const spend = {
+    txid: DEMO_SPEND,
+    kind: 'out' as const,
+    satoshis: DEMO_SENT_SATS,
+    time: DEMO_TIME,
+    confirmations: 162,
+    feeSats: DEMO_FEE_SATS,
+    counterparty: DEMO_SPEND_TO,
+  };
+  return step === 'spent' ? [spend, deposit] : [deposit];
+};

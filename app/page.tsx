@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, Fingerprint, Play } from 'lucide-react';
+import { BadgeCheck, Fingerprint } from 'lucide-react';
 import './landing.css';
 import { FilmPlayer } from '@/ui/Film';
 
@@ -22,12 +22,12 @@ export default function Landing() {
 
       <section className="lp-hero">
         <div>
-          <span className="lp-pill"><span className="dot" />Live on the test network</span>
+          <span className="lp-pill"><span className="dot" />A test-network proof you can open now</span>
           <h1>A box only your face can open.</h1>
           <p className="lp-lead">Lock Bitcoin Cash with Face ID or your fingerprint. The chain checks the approval itself. No seed phrase to write down.</p>
           <div className="lp-ctas">
-            <Link className="btn big" href="/welcome">Open the app</Link>
-            <Link className="btn ghost big" href="/film"><Play size={18} aria-hidden />Watch the film</Link>
+            <Link className="btn big" href="/wallet?demo=1">Try the demo</Link>
+            <Link className="btn ghost big" href="/welcome">Open the app</Link>
           </div>
           <ul className="lp-trust">
             <li><BadgeCheck size={16} aria-hidden />No seed phrase</li>
@@ -64,8 +64,8 @@ export default function Landing() {
         <h2>Try it on the test network.</h2>
         <p>Test coins have no value. Sending on the main network stays off until it is approved.</p>
         <div className="lp-ctas">
-          <Link className="btn big" href="/welcome">Open the app</Link>
-          <Link className="btn ghost big" href="/how-it-works">See how it works</Link>
+          <Link className="btn big" href="/wallet?demo=1">Try the demo</Link>
+          <Link className="btn ghost big" href="/welcome">Open the app</Link>
         </div>
       </section>
 

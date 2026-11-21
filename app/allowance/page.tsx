@@ -253,7 +253,7 @@ function AllowanceInner() {
             ) : (
               <section>
                 {view.history.map((h) => (
-                  <a key={h.txid} className="row w-chev" href={explorerUrl('chipnet', h.txid)} target="_blank" rel="noreferrer">
+                  <a key={h.txid} className="row w-chev" href={explorerUrl(s.networkId, h.txid)} target="_blank" rel="noreferrer">
                     <span className="logo txt"><PiggyBank size={18} aria-hidden /></span>
                     <span className="rn"><span className="nm">{h.title}</span><span className="sb">{h.txid.slice(0, 10)}…{h.txid.slice(-6)}</span></span>
                     <span className="chev2"><ChevronRight size={16} aria-hidden /></span>

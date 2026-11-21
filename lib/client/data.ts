@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { DEMO_ADDRESS, DEMO_DEPOSIT, DEMO_DEPOSIT_SATS, DEMO_FEE_SATS, DEMO_SENT_SATS, DEMO_SPEND, DEMO_SPEND_TO, DEMO_TIME } from '@/lib/demo';
+import { DEMO_ADDRESS, demoReplayTxs, type DemoReplay } from '@/lib/demo';
 
 export type ActivityKind = 'in' | 'out' | 'both';
 
@@ -51,12 +51,17 @@ export function useBalances(address: string | null, networkId: string) {
   return { sats, error };
 }
 
-export function useActivity(address: string | null, networkId: string, demo: boolean) {
+export function useActivity(address: string | null, networkId: string, demo: boolean, replay: DemoReplay = 'funded') {
   const [txs, setTxs] = useState<ChainTx[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!address) { setTxs(null); return; }
     let cancelled = false;
+    if (demo) {
+      setTxs(demoReplayTxs(replay));
+      setError(null);
+      return;
+    }
     const load = async () => {
       try {
         const res = await fetch(`/api/txs?address=${encodeURIComponent(address)}&network=${networkId}`);
@@ -74,26 +79,14 @@ export function useActivity(address: string | null, networkId: string, demo: boo
           feeSats: t.feeSats !== undefined ? toBig(t.feeSats) : undefined,
           counterparty: typeof t.counterparty === 'string' ? t.counterparty : undefined,
         };}).filter((t) => t.txid);
-        if (rows.length === 0 && (demo || address === DEMO_ADDRESS)) {
-          if (!cancelled) {
-            setTxs([
-              { txid: DEMO_SPEND, kind: 'out', satoshis: DEMO_SENT_SATS, time: DEMO_TIME, confirmations: 162, feeSats: DEMO_FEE_SATS, counterparty: DEMO_SPEND_TO },
-              { txid: DEMO_DEPOSIT, kind: 'in', satoshis: DEMO_DEPOSIT_SATS, time: DEMO_TIME, confirmations: 162 },
-            ]);
-            setError(null);
-          }
+        if (rows.length === 0 && address === DEMO_ADDRESS) {
+          if (!cancelled) { setTxs(demoReplayTxs('spent')); setError(null); }
           return;
         }
         if (!cancelled) { setTxs(rows); setError(null); }
       } catch (e) {
-        if (demo || address === DEMO_ADDRESS) {
-          if (!cancelled) {
-            setTxs([
-              { txid: DEMO_SPEND, kind: 'out', satoshis: DEMO_SENT_SATS, time: DEMO_TIME, confirmations: 162, feeSats: DEMO_FEE_SATS, counterparty: DEMO_SPEND_TO },
-              { txid: DEMO_DEPOSIT, kind: 'in', satoshis: DEMO_DEPOSIT_SATS, time: DEMO_TIME, confirmations: 162 },
-            ]);
-            setError(null);
-          }
+        if (address === DEMO_ADDRESS) {
+          if (!cancelled) { setTxs(demoReplayTxs('spent')); setError(null); }
           return;
         }
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -102,7 +95,7 @@ export function useActivity(address: string | null, networkId: string, demo: boo
     void load();
     const t = setInterval(() => void load(), 15000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [address, networkId, demo]);
+  }, [address, networkId, demo, replay]);
   return { txs, error };
 }
 
