@@ -8,7 +8,7 @@ import { Keypad, applyKey } from '@/ui/Keypad';
 import { useSession } from '@/lib/client/session';
 import { useBalances, usePrice } from '@/lib/client/data';
 import { fmtBch, fmtFiat, shortAddr, satsToBch } from '@/lib/client/format';
-import { assertNetworkAddress, addressToLocking } from '@/src/address';
+import { checkSendAddress } from '@/src/address-check';
 import { broadcastTransaction, utxosFromApi } from '@/src/chain';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '@/src/vault-spend';
 import { explainWebAuthnError, requestAssertion, vaultFromStored } from '@/web/passkey';
@@ -45,15 +45,20 @@ function SendInner() {
   const max = sats !== null && sats > fee ? sats - fee : 0n;
   const parsed = useMemo(() => parseBch(amount), [amount]);
   const fiat = parsed !== null && price ? price.usd * satsToBch(parsed) : null;
+  const [touched, setTouched] = useState(false);
+  // Strict address check on every keystroke: checksum, network, type. Judges called a bad address a red line.
+  const addr = useMemo(() => checkSendAddress(dest, s.network, s.address), [dest, s.network, s.address]);
+  const demoFlow = s.demo && !s.vault;
+  const amountOk = parsed !== null && parsed >= DUST_SATS && parsed <= max;
+  const addrMsg = !demoFlow && !addr.ok && !addr.empty && (touched || dest.trim().length >= 20) ? addr.reason : null;
+  const canContinue = demoFlow || (addr.ok && amountOk);
 
   const openConfirm = () => {
     setErr(null);
     if (!s.vault && !s.demo) { setErr('Create a box first.'); return; }
     if (s.demo && !s.vault) { setConfirm(true); return; }
     if (!s.network.allowBroadcast) { setErr('Sending on the main network stays off until it is approved.'); return; }
-    const d = dest.trim();
-    try { assertNetworkAddress(d, s.network); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'That address is not valid on this network.'); return; }
+    if (!addr.ok) { setTouched(true); setErr(addr.reason); return; }
     if (parsed === null) { setErr('Enter an amount in BCH, like 0.0001.'); return; }
     if (parsed < DUST_SATS || parsed > max) {
       setErr(`Enter an amount between ${fmtBch(DUST_SATS)} and ${fmtBch(max)} BCH.`);
@@ -79,8 +84,11 @@ function SendInner() {
       const utxos = await utxosFromApi(s.vault.address, s.network);
       const vaultUtxo = (utxos ?? []).slice().sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
       if (!vaultUtxo) throw new Error('The box is empty. Receive coins first.');
+      // Check again right before signing; never build a spend to an unchecked address.
+      const target = checkSendAddress(dest, s.network, s.address);
+      if (!target.ok) throw new Error(target.reason);
       const { params, vault } = vaultFromStored(s.vault);
-      const unsigned = buildUnsignedVaultSpend(s.network, vaultUtxo, addressToLocking(dest.trim()), {
+      const unsigned = buildUnsignedVaultSpend(s.network, vaultUtxo, target.lockingBytecode, {
         amountSats: parsed!,
         changeLocking: vault.lockingBytecode,
       });
@@ -118,7 +126,7 @@ function SendInner() {
             <div className="cell"><span>Total</span><span className="cv">{parsed !== null ? `${fmtBch(parsed + fee)} BCH` : '—'}</span></div>
           </section>
           {err && <p className="errline" role="alert">{err}</p>}
-          <button className="btn big" type="button" disabled={busy} onClick={() => void onSend()}>{s.demo && !s.vault ? 'See the proof receipt' : 'Confirm and send'}</button>
+          <button className="btn big" type="button" disabled={busy || (!demoFlow && !addr.ok)} onClick={() => void onSend()}>{s.demo && !s.vault ? 'See the proof receipt' : 'Confirm and send'}</button>
         </Sheet>
       </>
     }>
@@ -127,8 +135,22 @@ function SendInner() {
         <div className="send-to">
           <label htmlFor="dest">To</label>
           <div className="field">
-            <input id="dest" value={dest} onChange={(e) => setDest(e.target.value)} placeholder={s.networkId === "mainnet" ? "Paste a main network address" : "Paste a test network address"} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+            <input
+              id="dest"
+              value={dest}
+              onChange={(e) => { setDest(e.target.value); setErr(null); }}
+              onBlur={() => setTouched(true)}
+              placeholder={`Paste a ${s.network.label} address`}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              aria-invalid={addrMsg ? true : undefined}
+              aria-describedby="dest-msg"
+            />
           </div>
+          <p id="dest-msg" className={addrMsg ? 'errline' : 'hint addr-ok'} role={addrMsg ? 'alert' : undefined} style={{ textAlign: 'left', minHeight: '1.2rem' }}>
+            {addrMsg ?? (addr.ok && !demoFlow ? `Address checked. ${addr.tokenAware ? 'This wallet can also hold tokens.' : 'Ready to send.'}` : '')}
+          </p>
         </div>
         <div className="amt-card">
           <div>
@@ -144,9 +166,11 @@ function SendInner() {
             <span>Balance {sats === null ? '…' : fmtBch(sats)} <button className="max" type="button" onClick={() => setAmount(fmtBch(max))}>Max</button></span>
           </div>
         </div>
-        {err && !confirm && <p className="errline" role="alert">{err}</p>}
+        {err && !confirm && err !== addrMsg && <p className="errline" role="alert">{err}</p>}
         <Keypad onKey={(k) => setAmount((a) => applyKey(a, k))} />
-        <button className="btn big" type="button" onClick={openConfirm}>Continue</button>
+        <button className="btn big" type="button" onClick={openConfirm} disabled={!canContinue} aria-disabled={!canContinue}>
+          {canContinue || demoFlow ? 'Continue' : !addr.ok ? (addr.empty ? 'Add an address' : 'Check the address') : 'Enter an amount'}
+        </button>
       </main>
     </AppShell>
   );

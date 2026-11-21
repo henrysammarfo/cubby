@@ -40,6 +40,7 @@ function WalletInner() {
         <div className="home-tools">
           <button type="button" aria-label="Search assets" onClick={() => setSearchOn((v) => !v)}><Search size={18} aria-hidden /></button>
           <Link href={'/activity' + suffix} aria-label="Activity"><Bell size={18} aria-hidden /></Link>
+          <Link href={'/connect' + suffix} className="wiz" aria-label="Connect a wallet with WizardConnect" title="WizardConnect">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wizardconnect.png" alt="" width={22} height={22} /></Link>
         </div>
       </header>
       <main className="body wallet">
