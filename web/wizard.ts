@@ -12,8 +12,14 @@ export interface WalletSession {
   readonly walletName: string;
 }
 
+export type WalletPath = [number, 'receive' | 'change', number];
+
+export interface WalletCoin extends ChainUtxo {
+  readonly inputPath: WalletPath;
+}
+
 export type ConnectHandlers = {
-  onUri: (uri: string) => void;
+  onUri: (uri: string, qrUri: string) => void;
   onStatus: (message: string) => void;
   onReady: (session: WalletSession) => void;
   onDropped: (reason: string) => void;
@@ -63,7 +69,7 @@ export const startConnect = async (handlers: ConnectHandlers, network: Network):
   }
   manager.attachRelay(relay);
   currentUri = relay.uri;
-  handlers.onUri(relay.uri);
+  handlers.onUri(relay.uri, relay.qrUri);
 
   const finishReady = (): void => {
     if (settled || !manager) return;
@@ -90,7 +96,6 @@ export const startConnect = async (handlers: ConnectHandlers, network: Network):
 
   timeoutId = setTimeout(() => {
     if (settled) return;
-    void stopConnect();
     handlers.onTimeout();
   }, CONNECT_TIMEOUT_MS);
 };
@@ -145,22 +150,40 @@ const drawWizardHat = (canvas: HTMLCanvasElement): void => {
   ctx.fillRect(cx - box * 0.08, brimY - box * 0.12, box * 0.16, box * 0.1);
 };
 
-export const drawQr = async (canvas: HTMLCanvasElement, uri: string): Promise<void> => {
-  await QRCode.toCanvas(canvas, uri, { width: 240, margin: 1, color: { dark: '#1b1635', light: '#ffffff' } });
+export const drawQr = async (canvas: HTMLCanvasElement, uri: string, qrUri = uri): Promise<void> => {
+  const size = Math.max(280, canvas.width || 280);
+  await QRCode.toCanvas(canvas, qrUri, {
+    width: size,
+    margin: 2,
+    errorCorrectionLevel: 'H',
+    color: { dark: '#0B0B0F', light: '#ffffff' },
+  });
   drawWizardHat(canvas);
 };
 
 export const copyConnectionLink = async (): Promise<string> => {
   if (!currentUri) throw new Error('There is no connection link yet.');
-  await navigator.clipboard.writeText(currentUri);
-  return currentUri;
+  try {
+    await navigator.clipboard.writeText(currentUri);
+    return currentUri;
+  } catch {
+    const el = document.getElementById('wcUri');
+    if (el) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+    throw new Error('Copy was blocked in this browser. Long-press the connection link and copy it from there.');
+  }
 };
 
 const estimateFee = (inputs: number, outputs: number): bigint => 10n + 148n * BigInt(inputs) + 34n * BigInt(outputs);
 
 export const requestWalletSend = async (
   session: WalletSession,
-  utxos: ChainUtxo[],
+  utxos: WalletCoin[],
   destinationLocking: Uint8Array,
   amount: bigint,
   network: Network,
@@ -201,7 +224,8 @@ export const requestWalletSend = async (
     lockingBytecode: u.lockingBytecode,
     valueSatoshis: u.satoshis,
   }));
-  const inputPaths = utxos.map((_, i) => [i, 'receive' as const, 0] as [number, 'receive', number]);
+  // [account, receive|change, address index] — not the transaction input index.
+  const inputPaths = utxos.map((u) => u.inputPath);
   const response = await session.manager.signTransaction({
     transaction: { transaction: hex, sourceOutputs, userPrompt: 'Send coins to your Cubby box', broadcast: network.allowBroadcast },
     inputPaths,

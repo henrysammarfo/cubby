@@ -3,12 +3,15 @@ import { Buffer } from 'buffer';
 
 import { EMBER_TOKEN_ADDRESS, REPO_URL, WIDGET_FACTORY_URL } from '../src/banner.js';
 import { getNetwork, explorerTxUrl, explorerAddressUrl, type Network, type NetworkId } from '../src/network.js';
-import { assertNetworkAddress, addressToLocking } from '../src/address.js';
-import { broadcastTransaction, getWalletBalances, utxosFromApi, utxosFromTransaction, type ChainUtxo } from '../src/chain.js';
+import { assertNetworkAddress, addressToLocking, p2pkhAddressFromPublicKey } from '../src/address.js';
+import { addressesHaveHistory, broadcastTransaction, pusdBalanceFromWatchtower, utxosFromApi, utxosFromTransaction, utxosFromWatchtower, type ChainUtxo } from '../src/chain.js';
+import { scanAddressBatches } from '../src/wallet-scan.js';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '../src/vault-spend.js';
 import { createDeviceLock, loadVault, requestAssertion, vaultFromStored, currentRpId, type StoredVault } from './passkey.js';
-import { copyConnectionLink, drawQr, requestWalletSend, startConnect, stopConnect, type WalletSession } from './wizard.js';
+import { copyConnectionLink, drawQr, requestWalletSend, startConnect, stopConnect, type WalletCoin, type WalletSession } from './wizard.js';
 import { loadActivity, recordActivity, renderActivity } from './activity.js';
+import { attachHold } from './hold.js';
+import './hero-demo.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -44,23 +47,63 @@ $('emberAddress').textContent = EMBER_TOKEN_ADDRESS;
 
 const select = $('network') as HTMLSelectElement;
 select.value = network.id;
+const useMainnet = $('useMainnet') as HTMLInputElement;
+useMainnet.checked = network.id === 'mainnet';
 
 const refreshActivity = (): void => {
   const items = stored ? loadActivity(stored.address, network.id) : [];
   renderActivity($('activityList'), items, network);
 };
 
+type DiscoveredAddress = { address: string; chain: 'receive' | 'change'; index: number };
+
+let walletCoins: WalletCoin[] = [];
+
+const deriveWalletAddress = (session: WalletSession, chain: 'receive' | 'change') => {
+  const child = chain === 'receive' ? 0 : 1;
+  return (index: number): DiscoveredAddress | undefined => {
+    const pubkey = session.manager.getPubkey(child, BigInt(index));
+    if (!pubkey) return undefined;
+    return { address: p2pkhAddressFromPublicKey(pubkey, network), chain, index };
+  };
+};
+
+const inspectWalletBatch = (batch: DiscoveredAddress[]): Promise<boolean[]> =>
+  addressesHaveHistory(network, batch.map((item) => item.address));
+
+const discoverWalletCoins = async (session: WalletSession): Promise<WalletCoin[]> => {
+  const receive = await scanAddressBatches(deriveWalletAddress(session, 'receive'), inspectWalletBatch);
+  const change = session.manager.hasPath(1)
+    ? await scanAddressBatches(deriveWalletAddress(session, 'change'), inspectWalletBatch)
+    : [];
+  const used = [...receive, ...change];
+  const coins: WalletCoin[] = [];
+  for (const item of used) {
+    const utxos =
+      (await utxosFromApi(item.address, network)) ??
+      (await utxosFromWatchtower(network, item.address).catch(() => [] as ChainUtxo[]));
+    for (const utxo of utxos) coins.push({ ...utxo, inputPath: [0, item.chain, item.index] });
+  }
+  return coins;
+};
+
 const refreshBalances = async (): Promise<void> => {
   const box = $('walletBalance');
   if (!wallet) {
+    walletCoins = [];
     box.textContent = 'No wallet connected';
     return;
   }
   box.textContent = 'Checking wallet balance…';
   try {
-    const balances = await getWalletBalances(network, wallet.address);
-    const pusd = balances.pusdCents === null ? 'PUSD unknown' : formatPusd(balances.pusdCents);
-    box.innerHTML = `<strong>${wallet.walletName}</strong><br>${formatSats(balances.satoshis)}<br>${pusd}`;
+    walletCoins = await discoverWalletCoins(wallet);
+    const satoshis = walletCoins.reduce((sum, u) => sum + u.satoshis, 0n);
+    let pusdLabel = formatPusd(0n);
+    if (network.id === 'mainnet') {
+      const pusd = await pusdBalanceFromWatchtower(network, wallet.address);
+      pusdLabel = pusd === null ? 'PUSD unknown' : formatPusd(pusd);
+    }
+    box.innerHTML = `<strong>${wallet.walletName}</strong><br>${formatSats(satoshis)}<br>${pusdLabel}`;
   } catch (error) {
     box.textContent = `Connected, but the balance could not be read. ${error instanceof Error ? error.message : ''}`;
   }
@@ -96,8 +139,10 @@ const refreshNetworkCopy = (): void => {
   void refreshBalances();
 };
 
-select.addEventListener('change', () => {
-  network = getNetwork(select.value as NetworkId);
+const applyNetwork = (id: NetworkId): void => {
+  network = getNetwork(id);
+  select.value = network.id;
+  useMainnet.checked = network.id === 'mainnet';
   const url = new URL(location.href);
   url.searchParams.set('network', network.id);
   history.replaceState({}, '', url);
@@ -107,7 +152,9 @@ select.addEventListener('change', () => {
     void stopConnect().then(() => setWalletConnected(undefined));
   }
   refreshNetworkCopy();
-});
+};
+select.addEventListener('change', () => applyNetwork(select.value as NetworkId));
+useMainnet.addEventListener('change', () => applyNetwork(useMainnet.checked ? 'mainnet' : 'chipnet'));
 
 const showVault = (vault: StoredVault): void => {
   setStatus(
@@ -117,7 +164,10 @@ const showVault = (vault: StoredVault): void => {
   );
   $('vaultAddress').textContent = vault.address;
   $('copyVault').classList.remove('hidden');
+  void findVaultCoins(true);
 };
+
+const reviewHold = attachHold(button('reviewConfirm'), { hint: document.getElementById('reviewHint') });
 
 const openReview = (title: string, rows: Array<[string, string]>): Promise<boolean> =>
   new Promise((resolve) => {
@@ -132,38 +182,61 @@ const openReview = (title: string, rows: Array<[string, string]>): Promise<boole
       dd.textContent = value;
       body.append(dt, dd);
     }
+    reviewHold.reset();
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
     const onClose = (): void => {
       modal.removeEventListener('close', onClose);
-      resolve(modal.returnValue === 'confirm');
+      reviewHold.reset();
+      finish(modal.returnValue === 'confirm');
     };
     modal.addEventListener('close', onClose);
     modal.showModal();
+    void reviewHold.wait().then((ok) => {
+      if (!ok) return;
+      modal.returnValue = 'confirm';
+      if (modal.open) modal.close();
+    });
   });
 
-$('copyEmber').addEventListener('click', async () => {
-  await navigator.clipboard.writeText(EMBER_TOKEN_ADDRESS);
-});
-
-$('connect').addEventListener('click', async () => {
+const beginConnect = async (): Promise<void> => {
   try {
     await startConnect(
       {
-        onUri: async (uri) => {
+        onUri: async (uri, qrUri) => {
           $('qrWrap').classList.remove('hidden');
           $('wcUri').textContent = uri;
-          await drawQr($('qr') as HTMLCanvasElement, uri);
-          setStatus('walletStatus', 'info', 'Scan the WizardConnect code in your wallet, or copy the connection link.');
+          await drawQr($('qr') as HTMLCanvasElement, uri, qrUri);
+          const openLink = $('openUri') as HTMLAnchorElement;
+          openLink.href = uri;
+          openLink.hidden = false;
+          const cashonize = $('openCashonize') as HTMLAnchorElement;
+          cashonize.href = `https://cashonize.com/?uri=${encodeURIComponent(uri)}`;
+          cashonize.hidden = false;
+          setStatus(
+            'walletStatus',
+            'info',
+            'In Paytaca, open Apps, then WizardConnect, then Scan. The usual Scan button does not connect. If it hangs, tap New code for a fresh code.',
+          );
         },
         onStatus: (message) => setStatus('walletStatus', 'info', message),
         onReady: (session) => {
           $('qrWrap').classList.add('hidden');
           setWalletConnected(session);
-          setStatus('walletStatus', 'ok', `Connected to ${session.walletName} with WizardConnect. Address: ${session.address}`);
+          setStatus('walletStatus', 'ok', `Connected to ${session.walletName} with WizardConnect. Address: ${session.address}. The balance loads on its own.`);
+          void findVaultCoins(true);
         },
         onDropped: (reason) => markWalletDropped(reason),
         onTimeout: () => {
-          $('qrWrap').classList.add('hidden');
-          setStatus('walletStatus', 'err', 'The wallet did not connect in time. Check that the wallet is open and supports WizardConnect, then try again.');
+          setStatus(
+            'walletStatus',
+            'err',
+            'The wallet did not connect in time. Tap New code for a fresh code, then in Paytaca open Apps, then WizardConnect, then Scan.',
+          );
         },
         onError: (message) => setStatus('walletStatus', 'err', message),
       },
@@ -172,6 +245,11 @@ $('connect').addEventListener('click', async () => {
   } catch (error) {
     setStatus('walletStatus', 'err', error instanceof Error ? error.message : String(error));
   }
+};
+$('connect').addEventListener('click', () => void beginConnect());
+$('newQr').addEventListener('click', () => {
+  setStatus('walletStatus', 'info', 'Getting a fresh code…');
+  void beginConnect();
 });
 
 $('disconnect').addEventListener('click', async () => {
@@ -229,12 +307,12 @@ $('fundWallet').addEventListener('click', async () => {
     ]);
     if (!agreed) return;
     setStatus('fundStatus', 'info', 'Asking your wallet to send coins to the box…');
-    const walletUtxos = await utxosFromApi(wallet.address, network);
-    if (!walletUtxos || walletUtxos.length === 0) {
+    walletCoins = await discoverWalletCoins(wallet);
+    if (walletCoins.length === 0) {
       throw new Error('Could not find coins in the connected wallet on this network. Send coins to the box address yourself and paste the payment id.');
     }
     const { vault } = vaultFromStored(stored);
-    const sent = await requestWalletSend(wallet, walletUtxos, vault.lockingBytecode, network.recommendedFundSats, network);
+    const sent = await requestWalletSend(wallet, walletCoins, vault.lockingBytecode, network.recommendedFundSats, network);
     input('fundTxid').value = sent.txid;
     recordActivity({
       kind: 'deposit',
@@ -256,17 +334,28 @@ $('fundWallet').addEventListener('click', async () => {
   }
 });
 
+const findVaultCoins = async (quiet = false): Promise<boolean> => {
+  if (!stored) {
+    if (!quiet) throw new Error('Create a phone lock first so we know the box address.');
+    return false;
+  }
+  const fromApi = await utxosFromApi(stored.address, network);
+  const txid = input('fundTxid').value.trim();
+  const fromTx = txid ? await utxosFromTransaction(network, txid, stored.address) : [];
+  const all = [...(fromApi ?? []), ...fromTx];
+  const unique = new Map(all.map((u) => [`${u.txid}:${u.vout}`, u]));
+  const best = [...unique.values()].sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
+  if (!best) {
+    if (!quiet) throw new Error('No coins found yet. Send to the box address, then paste the payment id.');
+    return false;
+  }
+  rememberUtxo(best);
+  return true;
+};
+
 $('checkFund').addEventListener('click', async () => {
   try {
-    if (!stored) throw new Error('Create a phone lock first so we know the box address.');
-    const fromApi = await utxosFromApi(stored.address, network);
-    const txid = input('fundTxid').value.trim();
-    const fromTx = txid ? await utxosFromTransaction(network, txid, stored.address) : [];
-    const all = [...(fromApi ?? []), ...fromTx];
-    const unique = new Map(all.map((u) => [`${u.txid}:${u.vout}`, u]));
-    const best = [...unique.values()].sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
-    if (!best) throw new Error('No coins found yet. Send to the box address, then paste the payment id.');
-    rememberUtxo(best);
+    await findVaultCoins(false);
   } catch (error) {
     setStatus('fundStatus', 'err', error instanceof Error ? error.message : String(error));
   }

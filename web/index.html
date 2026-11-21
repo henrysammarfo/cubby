@@ -1,94 +1,234 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>Cubby</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F7F2EA">
+  <title>Cubby: your face is the key to your Bitcoin Cash</title>
+  <meta name="description" content="Cubby is a Bitcoin Cash vault with no seed phrase. Face ID or your fingerprint opens it, and the Bitcoin Cash chain itself checks it is you. Works with Paytaca, Selene and Cashonize.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">
+  <link rel="preload" href="/fonts/BricolageGrotesque-var.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
-  <header class="chrome">
-    <div class="banner" role="banner">
-      <ul>
-        <li><a id="widgetLink" href="https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing" target="_blank" rel="noreferrer">Widget Factory introduction</a></li>
-        <li><a id="repoLink" href="https://github.com/henrysammarfo/cubby" target="_blank" rel="noreferrer">Source code</a></li>
-        <li class="ember">
-          <span>EMBER 2026 and prize payout address</span>
-          <code id="emberAddress" class="mono">bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj</code>
-          <button type="button" id="copyEmber" class="tiny">Copy address</button>
-        </li>
-      </ul>
+<a class="skip" href="#main">Skip to content</a>
+
+<aside class="banner" role="banner" aria-label="BLAZE 2026 entry links">
+  <div class="in">
+    <div class="mark">
+      <img src="/logo/cubby.svg" width="32" height="32" alt="">
+      <b>cubby</b>
     </div>
-    <div class="topbar">
-      <div class="network-switch">
-        <label for="network">Network</label>
-        <select id="network" aria-describedby="networkHelp">
+    <div class="tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2c1 3.2-1.6 4.6-1.6 7.2 0 1.2.8 2 1.8 2 1.3 0 2-1.1 1.8-2.7C16.3 10 18 12.4 18 15a6 6 0 0 1-12 0c0-3.6 2.6-5.4 3.7-8.1C10.6 4.9 11.6 3.6 12 2z"/></svg>BLAZE 2026 ENTRY</div>
+    <button type="button" class="banner-more" id="bannerMore" aria-expanded="false" aria-controls="bannerLinks">Deck, code, vote</button>
+    <div class="banner-links" id="bannerLinks">
+    <a class="stub" id="widgetLink" href="https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing" target="_blank" rel="noreferrer">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#FFC53D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M10 8.5v5l4-2.5z"/></svg></span>
+      <span><b>Widget Factory intro</b><small>Our intro deck</small></span>
+      <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+      <span class="sr">(opens in a new tab)</span>
+    </a>
+    <a class="stub" id="repoLink" href="https://github.com/henrysammarfo/cubby" target="_blank" rel="noreferrer">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#F5F3EF"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg></span>
+      <span><b>Source code</b><small>henrysammarfo/cubby</small></span>
+      <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+      <span class="sr">(opens in a new tab)</span>
+    </a>
+    <div class="stub ember-stub">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#FF5A1F" d="M12 2c1 3.2-1.6 4.6-1.6 7.2 0 1.2.8 2 1.8 2 1.3 0 2-1.1 1.8-2.7C16.3 10 18 12.4 18 15a6 6 0 0 1-12 0c0-3.6 2.6-5.4 3.7-8.1C10.6 4.9 11.6 3.6 12 2z"/></svg></span>
+      <span style="min-width:0"><b>Vote with EMBER 2026</b><code class="addr" id="emberAddress" title="bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj">bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj</code></span>
+      <button class="copy press" id="copyEmber" type="button" aria-describedby="emberAddress"><span class="lab">Copy</span><span class="done" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg>Copied</span></button>
+    </div>
+    </div>
+  </div>
+  <p class="built-fresh">Built fresh during BLAZE, first commit <a id="firstCommitLink" href="https://github.com/henrysammarfo/cubby/commit/18c652e" target="_blank" rel="noreferrer">17 Nov</a>.</p>
+</aside>
+
+<div class="navwrap">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#stage" aria-label="Cubby home">
+      <img src="/logo/cubby.svg" width="36" height="36" alt="">
+      cubby
+    </a>
+    <button type="button" class="nav-more" id="navMore" aria-expanded="false" aria-controls="navPanel">Menu</button>
+    <div class="nav-panel" id="navPanel">
+    <ul class="links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#try">Try it</a></li>
+      <li><a href="#activity">My activity</a></li>
+    </ul>
+    <span class="spacer"></span>
+    <div class="nav-tools">
+      <div class="seg" role="group" aria-label="Theme">
+        <span class="thumb" aria-hidden="true"></span>
+        <button type="button" data-t="light" aria-pressed="true">Light</button>
+        <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+        <button type="button" data-t="system" aria-pressed="false">Auto</button>
+      </div>
+      <div class="net-switch">
+        <label for="network" class="sr">Network</label>
+        <select id="network" class="sr" aria-describedby="networkHelp">
           <option value="chipnet">Test network</option>
           <option value="mainnet">Main network (no sending yet)</option>
         </select>
+        <label class="mainnet-tick" for="useMainnet">
+          <input type="checkbox" id="useMainnet">
+          <span>Use the main network</span>
+        </label>
+        <small>The test network stays on until you tick this. Sending on the main network is still off.</small>
       </div>
       <div id="walletBalance" class="balances" role="status">No wallet connected</div>
+      <a class="btn btn-ember press" href="#connect">Connect wallet</a>
     </div>
-    <nav class="tabs" aria-label="Page sections">
-      <a href="#see">See it</a>
-      <a href="#try">Try it</a>
-      <a href="#activity">My activity</a>
-    </nav>
-  </header>
-  <main id="main">
-    <section id="see" class="card hero" aria-labelledby="title">
-      <h1 id="title">Cubby</h1>
-      <p class="hero-line">Your face or fingerprint opens a Bitcoin Cash box, and the chain itself checks the approval.</p>
-      <figure class="hero-art" aria-hidden="true">
-        <svg viewBox="0 0 320 140" width="320" height="140" role="img">
-          <title>A phone lock opening a box of coins</title>
-          <rect x="18" y="22" width="70" height="108" rx="12" fill="#fff" stroke="#1b1635" stroke-width="3"/>
-          <circle cx="53" cy="70" r="16" fill="none" stroke="#3a3cff" stroke-width="4"/>
-          <circle cx="53" cy="70" r="5" fill="#3a3cff"/>
-          <path d="M98 70 H150" stroke="#1b1635" stroke-width="3"/>
-          <polygon points="140,62 156,70 140,78" fill="#1b1635"/>
-          <rect x="170" y="48" width="110" height="70" rx="10" fill="#ffe8d6" stroke="#1b1635" stroke-width="3"/>
-          <path d="M170 66 H280" stroke="#1b1635" stroke-width="3"/>
-          <circle cx="200" cy="96" r="10" fill="#ffd36a" stroke="#8a4b00"/>
-          <circle cx="224" cy="92" r="10" fill="#ffd36a" stroke="#8a4b00"/>
-          <circle cx="248" cy="98" r="10" fill="#ffd36a" stroke="#8a4b00"/>
-        </svg>
-      </figure>
-      <div id="demoProof" class="proof">
-        <p><strong>Completed test network spend</strong> (chipnet, these coins have no value)</p>
-        <p>A real deposit and a passkey-approved send are already on the test network, so you can inspect them without setting anything up.</p>
-        <ul>
-          <li><a id="proofSpend" href="https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993" target="_blank" rel="noreferrer">Open the test network spend</a></li>
-          <li><a id="proofFund" href="https://chipnet.bchexplorer.info/tx/8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7" target="_blank" rel="noreferrer">Open the test network deposit</a></li>
-          <li>Test network box address: <code id="proofVault" class="mono">bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk</code></li>
-        </ul>
+    </div>
+  </nav>
+</div>
+
+<main id="main">
+  <section class="stage" id="stage" aria-labelledby="title">
+    <canvas id="embers" aria-hidden="true"></canvas>
+    <div class="copycol">
+      <span class="eyebrow rv" style="--d:60ms"><img class="bch" src="/brand/bitcoin-cash-circle.svg" width="18" height="18" alt="">A Bitcoin Cash vault with no seed phrase</span>
+      <h1 id="title" aria-label="Your face is the key.">
+        <span class="line" aria-hidden="true"><span style="--d:120ms">Your <span class="face">face</span></span></span>
+        <span class="line" aria-hidden="true"><span style="--d:190ms">is the key.</span></span>
+      </h1>
+      <p class="hero-line sub rv" style="--d:360ms">Open and spend your Bitcoin Cash with Face ID or your fingerprint. <strong>The chain itself checks it is really you.</strong></p>
+      <div class="ctas rv" style="--d:440ms">
+        <a class="btn btn-ember press" href="#try">Try it on the test network</a>
+        <a class="btn btn-glass btn-on-dark press" href="#how">How it works</a>
       </div>
-      <p class="muted">This project started during BLAZE 2026. There is no earlier demo or earlier repository.</p>
+      <ul class="proof rv" style="--d:520ms" aria-label="Why Cubby">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>Nothing to write down</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>Checked on chain</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>Works with Paytaca, Selene and Cashonize</li>
+      </ul>
+    </div>
+
+    <div class="artcol">
+      <div class="art" id="art">
+        <img src="/mascot/cubby-hero-1280.jpg" srcset="/mascot/cubby-hero-1280.jpg 1280w, /mascot/cubby-hero-2048.jpg 2048w" sizes="(max-width: 860px) 100vw, 52vw" width="2048" height="1536" alt="Cubby, our anime vault keeper, holds up a phone showing a green face scan. A little cube vault by her shoulder holds a Bitcoin Cash coin.">
+      </div>
+      <span class="sticker s-wiz" style="--d:700ms" aria-hidden="true"><span class="dot"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 6.5 13.5h11zM4 15.5h16a1 1 0 0 1 0 2H4a1 1 0 0 1 0-2z"/></svg></span>WizardConnect</span>
+      <span class="sticker s-chain" style="--d:790ms" aria-hidden="true"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg></span>Checked on chain</span>
+      <span class="sticker s-seed" style="--d:880ms" aria-hidden="true"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></span>No seed phrase</span>
+
+      <section class="vault" id="vault" data-state="idle" aria-labelledby="vt">
+        <div class="vhead">
+          <div class="scan" aria-hidden="true">
+            <svg class="frame" viewBox="0 0 56 56"><g class="br" id="br">
+              <path d="M14 22v-4a4 4 0 0 1 4-4h4"/><path d="M34 14h4a4 4 0 0 1 4 4v4"/><path d="M42 34v4a4 4 0 0 1-4 4h-4"/><path d="M22 42h-4a4 4 0 0 1-4-4v-4"/>
+              <circle cx="23" cy="25" r="1.6" fill="#F5F3EF" stroke="none"/><circle cx="33" cy="25" r="1.6" fill="#F5F3EF" stroke="none"/><path d="M23 33q5 4 10 0"/></g></svg>
+            <span class="sweep"></span>
+            <span class="dial"><svg viewBox="0 0 56 56" width="56" height="56"><circle cx="28" cy="28" r="14" fill="none" stroke="#0AC18E" stroke-width="3.5"/><circle cx="28" cy="28" r="4" fill="#0AC18E"/><path d="M28 10v5M28 41v5M10 28h5M41 28h5" stroke="#0AC18E" stroke-width="3.5" stroke-linecap="round"/></svg></span>
+          </div>
+          <div class="vt"><b id="vt">My Cubby</b><small id="vsub">Locked. Only you can open it.</small></div>
+        </div>
+        <div class="coins" aria-hidden="true"></div>
+        <p class="bal">
+          <span id="balWrap" class="is-hidden">
+            <span class="amount" id="balAmount" aria-hidden="true">••••••</span>
+            <span class="digits" id="digits" hidden></span>
+          </span>
+          <small>BCH</small>
+          <button type="button" class="eye" id="balToggle" aria-pressed="false" aria-label="Show the demo balance">
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.5-1.5M9.9 5.1A10.6 10.6 0 0 1 12 5c6 0 10 6 10 6a16.7 16.7 0 0 1-3.2 3.6M6.1 6.1A16 16 0 0 0 2 11s4 6 10 6c1.1 0 2.2-.2 3.2-.6"/></svg>
+            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <span class="sr" id="balText">Balance hidden</span>
+        </p>
+        <ol class="steps" id="steps" aria-label="What happens when you open it">
+          <li data-k="sign"><span class="d"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"/></svg></span>Face ID signs on this phone</li>
+          <li data-k="chain"><span class="d"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"/></svg></span>The Bitcoin Cash chain checks it</li>
+          <li data-k="open"><span class="d"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"/></svg></span>Your vault opens</li>
+        </ol>
+        <button class="hold press" id="hold" type="button" aria-describedby="hint holdHelp">
+          <span class="lab main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M7 20H5a1 1 0 0 1-1-1v-2M17 20h2a1 1 0 0 0 1-1v-2M9 10v1M15 10v1M12 10v3h-1M9.5 16q2.5 1.6 5 0"/></svg><span>Hold to open</span></span>
+          <span class="lab alt" id="altLab"><span>Checking</span></span>
+          <span class="fill" id="fill" aria-hidden="true"><span class="lab main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M7 20H5a1 1 0 0 1-1-1v-2M17 20h2a1 1 0 0 0 1-1v-2M9 10v1M15 10v1M12 10v3h-1M9.5 16q2.5 1.6 5 0"/></svg><span>Hold to open</span></span></span>
+        </button>
+        <div class="hint" id="hint">Keep holding to open</div>
+        <p class="sr" id="holdHelp">Press and hold for a little over one second, or hold the Space key.</p>
+        <div class="foot"><span>Test network demo</span><button type="button" id="reset" hidden>Lock it again</button></div>
+        <p class="sr" role="status" aria-live="polite" id="live"></p>
+      </section>
+    </div>
+  </section>
+
+  <div class="page">
+    <div id="demoProof" class="card proof-card">
+      <p><strong>Completed test network spend</strong> (chipnet, these coins have no value)</p>
+      <p>A real deposit and a passkey-approved send are already on the test network, so you can inspect them without setting anything up.</p>
+      <ul>
+        <li><a id="proofSpend" href="https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993" target="_blank" rel="noreferrer">Open the test network spend</a></li>
+        <li><a id="proofFund" href="https://chipnet.bchexplorer.info/tx/8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7" target="_blank" rel="noreferrer">Open the test network deposit</a></li>
+        <li>Test network box address: <code id="proofVault" class="mono">bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk</code></li>
+      </ul>
+    </div>
+
+    <section id="how" aria-labelledby="howTitle">
+      <h2 id="howTitle">How it works</h2>
+      <p class="lede">Three steps. No seed to write down, and the Bitcoin Cash chain itself checks that the approval is real.</p>
+      <div class="steps-how">
+        <article><span class="n">1</span><b>Create a phone lock</b><p>Your face or fingerprint on this device becomes the only way to open the box. The lock is tied to this website address.</p></article>
+        <article><span class="n">2</span><b>Put coins in the box</b><p>Send Bitcoin Cash to the box address from Paytaca, Selene, Cashonize, or any wallet you already use.</p></article>
+        <article><span class="n">3</span><b>Hold to open and send</b><p>Hold to review, then approve with your face or fingerprint. The chain checks the approval before the coins move.</p></article>
+      </div>
     </section>
 
-    <section id="try">
-      <p id="networkHelp" class="muted">The test network coins have no value. A send needs about 20 000 test units in the box so the fee fits.</p>
+    <section id="try" aria-labelledby="tryTitle">
+      <h2 id="tryTitle">Try it</h2>
+      <p class="lede" id="networkHelp">The test network coins have no value. A send needs about 20 000 test units in the box so the fee fits.</p>
+      <p class="muted">Built fresh during BLAZE, first commit <a href="https://github.com/henrysammarfo/cubby/commit/18c652e">17 Nov</a>. There is no earlier demo or earlier repository.</p>
+
       <section class="card" aria-labelledby="step1">
-        <h2 id="step1">1. Connect a wallet with WizardConnect (optional)</h2>
-        <p>This uses WizardConnect, not WalletConnect v2. Set your wallet to the same network as the switch above. You can also skip this and send coins to the box address yourself.</p>
+        <h3 id="step1">1. Connect a wallet</h3>
+        <p>This uses WizardConnect, not WalletConnect v2. Stay on the test network, or tick Use the main network in the menu. You can also skip this and send coins to the box address yourself.</p>
         <div class="row">
           <button type="button" id="connect">Connect wallet</button>
           <button type="button" id="disconnect" class="secondary hidden">Disconnect</button>
         </div>
         <p id="walletStatus" class="status info hidden" role="status"></p>
         <div id="qrWrap" class="hidden">
-          <p>Scan this WizardConnect code in your wallet, or copy the connection link. Clicking the code also copies the link.</p>
-          <button type="button" id="qrButton" class="qr-button" aria-label="Copy connection link">
-            <canvas id="qr" width="240" height="240"></canvas>
-          </button>
-          <p class="mono" id="wcUri"></p>
-          <button type="button" id="copyUri" class="secondary">Copy connection link</button>
+          <div class="qr-panel">
+            <div>
+              <button type="button" id="qrButton" class="qr-button" aria-label="Copy connection link">
+                <canvas id="qr" width="280" height="280"></canvas>
+              </button>
+              <p>Scan this code, or copy the connection link. Tapping the code also copies the link. If the scan hangs, tap New code.</p>
+            </div>
+            <div>
+              <p>Works with these wallets today:</p>
+              <ul class="wallet-list">
+                <li>
+                  <img src="/wallets/paytaca.png" width="44" height="44" alt="">
+                  <div><b>Paytaca</b><p>Open Apps, then WizardConnect, then Scan. The usual Scan button does not connect WizardConnect. If it hangs, come back here and tap New code.</p></div>
+                </li>
+                <li>
+                  <img src="/wallets/selene.svg" width="44" height="44" alt="">
+                  <div><b>Selene</b><p>Scan this code in Selene, or open the connection link. Selene on iPhone and Android can open that link directly.</p></div>
+                </li>
+                <li>
+                  <img src="/wallets/cashonize.png" width="44" height="44" alt="">
+                  <div><b>Cashonize</b><p>In Cashonize, open Connect, then scan or paste the link. Use an HD wallet. On Android, the connection link can open the app. In a browser, you can also open Cashonize with the link below.</p></div>
+                </li>
+              </ul>
+              <p class="mono" id="wcUri"></p>
+              <div class="wallet-actions">
+                <button type="button" id="newQr" class="secondary">New code</button>
+                <button type="button" id="copyUri" class="secondary">Copy connection link</button>
+                <a class="btn secondary" id="openUri" hidden>Open the connection link</a>
+                <a class="btn secondary" id="openCashonize" hidden target="_blank" rel="noreferrer">Open in Cashonize in the browser</a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
       <section class="card" aria-labelledby="step2">
-        <h2 id="step2">2. Create your phone lock</h2>
+        <h3 id="step2">2. Create your phone lock</h3>
         <p>This uses the built in face or fingerprint check on this device. The lock is tied to this website address.</p>
         <div class="row">
           <button type="button" id="createLock">Create phone lock</button>
@@ -99,8 +239,9 @@
           <button type="button" id="copyVault" class="secondary hidden">Copy box address</button>
         </div>
       </section>
+
       <section class="card" aria-labelledby="step3">
-        <h2 id="step3">3. Put coins in the box</h2>
+        <h3 id="step3">3. Put coins in the box</h3>
         <p>Send at least <strong id="fundNeed">20 000</strong> units to the box address. Or paste the payment id after you send them.</p>
         <div class="row">
           <button type="button" id="fundWallet" disabled>Send from connected wallet</button>
@@ -112,8 +253,9 @@
         </div>
         <p id="fundStatus" class="status info hidden" role="status"></p>
       </section>
+
       <section class="card" aria-labelledby="step4">
-        <h2 id="step4">4. Send them back with your face or fingerprint</h2>
+        <h3 id="step4">4. Send them back with your face or fingerprint</h3>
         <label for="dest">Send to this address</label>
         <input id="dest" spellcheck="false" autocomplete="off" placeholder="Your wallet address on this network">
         <p id="destError" class="status err hidden" role="alert"></p>
@@ -127,25 +269,51 @@
 
     <section id="activity" class="card" aria-labelledby="activityTitle">
       <h2 id="activityTitle">My activity</h2>
-      <p class="muted">Deposits and spends for the box on this device, with explorer links.</p>
+      <p class="lede">Deposits and spends for the box on this device, with explorer links.</p>
       <div id="activityList"></div>
     </section>
 
-    <footer>
-      <p>Sahid Miller first showed a passkey style Bitcoin Cash spend (signatures.cash). Cubby is a new implementation, written from scratch, with the chain rebuilding the payment intent itself.</p>
-    </footer>
-  </main>
-
-  <dialog id="reviewModal" aria-labelledby="reviewTitle">
-    <form method="dialog">
-      <h2 id="reviewTitle">Review this action</h2>
-      <dl id="reviewBody"></dl>
-      <div class="row">
-        <button type="submit" value="cancel" class="secondary">Cancel</button>
-        <button type="submit" value="confirm" id="reviewConfirm">Confirm</button>
+    <section id="business" class="business" aria-labelledby="bizTitle">
+      <div class="card-pitch">
+        <h2 id="bizTitle">A seedless vault for the wallets people already use</h2>
+        <p>If you keep Bitcoin Cash in Selene, Paytaca or Cashonize, Cubby is a box only your face can open. There is no extra seed to lose, and you connect with WizardConnect, the same way those wallets already talk to apps.</p>
+        <p>Paytaca users should open Apps, then WizardConnect, then Scan. The usual Scan button does not connect. Selene and Cashonize users can scan, paste, or open the connection link. If a scan hangs, tap New code for a fresh one. Savings stay in your Cubby until you approve a send.</p>
+        <div class="logo-row">
+          <figure><img src="/wallets/selene.svg" width="48" height="48" alt=""><figcaption>Selene</figcaption></figure>
+          <figure><img src="/wallets/paytaca.png" width="48" height="48" alt=""><figcaption>Paytaca</figcaption></figure>
+          <figure><img src="/wallets/cashonize.png" width="48" height="48" alt=""><figcaption>Cashonize</figcaption></figure>
+        </div>
       </div>
-    </form>
-  </dialog>
-  <script type="module" src="./main.ts"></script>
+    </section>
+  </div>
+
+  <footer class="site">
+    <p>Sahid Miller first showed a passkey style Bitcoin Cash spend (signatures.cash). Cubby is a new implementation, written from scratch, with the chain rebuilding the payment intent itself.</p>
+  </footer>
+</main>
+
+<nav class="dock" aria-label="Mobile sections">
+  <a href="#stage">Home</a>
+  <a href="#try">Try it</a>
+  <a href="#activity">Activity</a>
+  <a href="#how">How it works</a>
+</nav>
+
+<dialog id="reviewModal" aria-labelledby="reviewTitle">
+  <form method="dialog">
+    <h2 id="reviewTitle">Review this action</h2>
+    <dl id="reviewBody"></dl>
+    <div class="row">
+      <button type="submit" value="cancel" class="secondary">Cancel</button>
+      <button type="button" value="confirm" id="reviewConfirm" class="hold">
+        <span class="lab main"><span>Hold to confirm</span></span>
+        <span class="lab alt"><span>Confirmed</span></span>
+        <span class="fill" aria-hidden="true"><span class="lab main"><span>Hold to confirm</span></span></span>
+      </button>
+    </div>
+    <p class="hint" id="reviewHint">Keep holding to confirm</p>
+  </form>
+</dialog>
+<script type="module" src="./main.ts"></script>
 </body>
 </html>

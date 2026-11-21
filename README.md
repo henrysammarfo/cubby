@@ -2,7 +2,7 @@
 
 **Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (20/20 unit tests). The live demo is deployed. A real chipnet vault deposit and passkey spend are on the test network (see links below). The repository is still private. No mainnet coins have been spent.
 
-Cubby is a new project. The repository was created on 17 November 2026. There is no earlier demo and no earlier repository.
+Cubby was built fresh during BLAZE. The first commit is 17 November 2026 ([18c652e](https://github.com/henrysammarfo/cubby/commit/18c652e)). There is no earlier demo and no earlier repository, so judges do not need a 14 November starting-state demo link.
 
 Cubby lets a phone lock (face, fingerprint, or Windows Hello) approve a Bitcoin Cash spend that **the chain itself checks**. The S1 signing gate is a CashVM covenant that verifies a WebAuthn P-256 assertion whose challenge is an intent hash of the spending transaction.
 
@@ -19,7 +19,7 @@ Prize money is paid to the CashTokens address shown in the demo banner. That add
 The live demo is at https://cubby-liart-six.vercel.app. Open it on a phone or laptop with a screen lock. The passkey is bound to this website address, so use this HTTPS origin (not a preview URL) when you create a phone lock.
 
 1. Stay on the test network (the default). Those coins have no value.
-2. Optionally connect a Bitcoin Cash wallet with WizardConnect. Set the wallet to the test network too.
+2. Optionally connect a Bitcoin Cash wallet with WizardConnect. In Paytaca, open Apps, then WizardConnect, then Scan (the usual Scan button does not connect). If it hangs, tap New code on the demo for a fresh code. Selene and Cashonize can scan or open the connection link. Stay on the test network, or tick Use the main network in the menu (sending on the main network stays off).
 3. Create your phone lock. It is tied to this website address.
 4. Send at least 20 000 test units to the box address (or paste the payment id after you send). The on-chain check is a large transaction, about 10 KB, and the fee is 1 unit per byte, so a smaller deposit cannot cover the send.
 5. Send the coins back with your face or fingerprint.

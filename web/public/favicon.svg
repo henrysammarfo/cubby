@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16" fill="none" role="img" aria-label="Cubby">
+  <title>Cubby</title>
+  <path fill="#FF5A1F" fill-rule="evenodd" d="M14 4h36a12 12 0 0 1 12 12v32a12 12 0 0 1-12 12H14A12 12 0 0 1 2 48V16A12 12 0 0 1 14 4Z M32 16c-5.523 0-10 4.477-10 10 0 3.394 1.684 6.39 4.27 8.22L22 48h20L37.73 34.22A9.96 9.96 0 0 0 42 26c0-5.523-4.477-10-10-10Z"/>
+
+</svg>

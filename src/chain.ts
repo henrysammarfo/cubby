@@ -212,3 +212,30 @@ export const utxosFromApi = async (address: string, network?: Network): Promise<
 
 export const hexFromBytes = (bytes: Uint8Array): string => binToHex(bytes);
 export const bytesFromHex = (hex: string): Uint8Array => hexToBin(hex);
+
+/** Look up whether each address has any transaction history (not only unspent coins). */
+export const historiesFromApi = async (network: Network, addresses: string[]): Promise<Record<string, boolean> | null> => {
+  const unique = [...new Set(addresses.filter(Boolean))];
+  if (unique.length === 0) return {};
+  try {
+    const query = new URLSearchParams({ network: network.id });
+    for (const address of unique) query.append('address', address);
+    const response = await fetch(`/api/history?${query.toString()}`);
+    if (!response.ok) return null;
+    const body = (await response.json()) as { history?: Record<string, boolean> };
+    return body.history ?? null;
+  } catch {
+    return null;
+  }
+};
+
+export const addressesHaveHistory = async (network: Network, addresses: string[]): Promise<boolean[]> => {
+  const fromApi = await historiesFromApi(network, addresses);
+  return Promise.all(
+    addresses.map(async (address) => {
+      if (fromApi && Object.prototype.hasOwnProperty.call(fromApi, address)) return fromApi[address] === true;
+      const utxos = await utxosFromWatchtower(network, address).catch(async () => (await utxosFromApi(address, network)) ?? []);
+      return utxos.length > 0;
+    }),
+  );
+};

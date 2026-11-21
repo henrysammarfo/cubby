@@ -2,14 +2,34 @@ import { defineConfig, type ViteDevServer } from 'vite';
 import { resolve } from 'node:path';
 import { getNetwork } from '../src/network.ts';
 import { utxosFromWatchtower } from '../src/chain.ts';
+import { getHistories } from '../api/_electrum.ts';
 
 const apiPlugin = () => ({
   name: 'cubby-api',
   configureServer(server: ViteDevServer) {
     server.middlewares.use(async (req, res, next) => {
       const url = req.url ?? '';
-      if (!url.startsWith('/api/utxos')) return next();
       const parsed = new URL(url, 'http://localhost');
+      if (parsed.pathname === '/api/history') {
+        const addresses = parsed.searchParams.getAll('address').flatMap((a) => a.split(',')).map((a) => a.trim()).filter(Boolean);
+        const networkId = parsed.searchParams.get('network') ?? 'chipnet';
+        getNetwork(networkId);
+        res.setHeader('Content-Type', 'application/json');
+        if (addresses.length === 0) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'address is required' }));
+          return;
+        }
+        try {
+          const history = await getHistories(networkId, addresses);
+          res.end(JSON.stringify({ history }));
+        } catch (error) {
+          res.statusCode = 503;
+          res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+        }
+        return;
+      }
+      if (!url.startsWith('/api/utxos')) return next();
       const address = parsed.searchParams.get('address') ?? '';
       const network = getNetwork(parsed.searchParams.get('network'));
       res.setHeader('Content-Type', 'application/json');

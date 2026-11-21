@@ -76,3 +76,62 @@ export const electrumBroadcast = async (network: string, hex: string): Promise<s
 };
 
 void net;
+
+export const getHistories = async (network: string, addresses: string[]): Promise<Record<string, boolean>> => {
+  const unique = [...new Set(addresses.filter(Boolean))];
+  const out: Record<string, boolean> = {};
+  if (unique.length === 0) return out;
+  const list = SERVERS[network] ?? SERVERS.chipnet ?? [];
+  let last = 'no servers';
+  for (const server of list) {
+    try {
+      const result = await new Promise<Record<string, boolean>>((resolve, reject) => {
+        const socket = tls.connect({ host: server.host, port: server.port, servername: server.host, timeout: 12000 }, () => {
+          unique.forEach((address, i) => {
+            socket.write(JSON.stringify({ id: i + 1, method: 'blockchain.scripthash.get_history', params: [scriptHash(address)] }) + '\n');
+          });
+        });
+        let buf = '';
+        const found: Record<string, boolean> = {};
+        let remaining = unique.length;
+        socket.setEncoding('utf8');
+        socket.on('data', (chunk: string) => {
+          buf += chunk;
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line) as { id?: number; result?: unknown; error?: unknown };
+              if (parsed.error) {
+                socket.end();
+                reject(new Error(JSON.stringify(parsed.error)));
+                return;
+              }
+              const idx = (parsed.id ?? 0) - 1;
+              const address = unique[idx];
+              if (address) found[address] = Array.isArray(parsed.result) && parsed.result.length > 0;
+              remaining -= 1;
+              if (remaining <= 0) {
+                socket.end();
+                resolve(found);
+              }
+            } catch (error) {
+              socket.end();
+              reject(error);
+            }
+          }
+        });
+        socket.on('error', reject);
+        socket.on('timeout', () => {
+          socket.destroy();
+          reject(new Error('electrum timeout'));
+        });
+      });
+      return result;
+    } catch (error) {
+      last = error instanceof Error ? error.message : String(error);
+    }
+  }
+  throw new Error(`Electrum history failed: ${last}`);
+};
