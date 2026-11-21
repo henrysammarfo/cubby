@@ -155,6 +155,9 @@ export const broadcastTransaction = async (network: Network, txHex: string): Pro
   if (existing) return existing;
   const work = broadcastTransactionUncached(network, txHex);
   broadcastCache.set(key, work);
+  // Only successes are reused. A refusal (for example a backup move that is still too early)
+  // must be retryable later with the same transaction.
+  work.catch(() => { if (broadcastCache.get(key) === work) broadcastCache.delete(key); });
   return work;
 };
 
