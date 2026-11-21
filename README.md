@@ -16,7 +16,7 @@ Prize money is paid to the CashTokens address shown in the demo banner. That add
 
 ## Try the live demo
 
-The deploy URL will be added here as soon as the free Vercel origin is live. Open it on a phone or laptop with a screen lock.
+The live demo is at https://cubby-liart-six.vercel.app. Open it on a phone or laptop with a screen lock. The passkey is bound to this website address, so use this HTTPS origin (not a preview URL) when you create a phone lock.
 
 1. Stay on the test network (the default). Those coins have no value.
 2. Optionally connect a Bitcoin Cash wallet with WizardConnect. Set the wallet to the test network too.

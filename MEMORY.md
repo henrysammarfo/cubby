@@ -46,3 +46,7 @@ The matching private key is only in the gitignored `.secrets/` file. Henry must 
 
 ## Chipnet e2e (21 Nov 2026, Accra)
 Not yet on chain. Ninja faucet claims return a submitted txid that never appears on chipnet.bchexplorer.info, Watchtower, Selene, or imaginary.cash (same chain tip as Ninja, height 341240 at the time). Apecs claims fail after a valid proof of work with HTTP 502 Fulcrum websocket errors. Do not bypass faucet rate limits or captchas. Funding address for a later drip (no keys here): `bchtest:qpl93ln6r425c60fqhc25sf4sh59fmwwrufym39tj0` (needs at least 20 000 units).
+
+## Live demo (21 Nov 2026, Accra)
+Public Vercel production URL: https://cubby-liart-six.vercel.app
+Project: teamtitanlink/cubby (Hobby). Vercel SSO/deployment protection was disabled so judges can open it without a login. Repo is still private. No chipnet spend txids yet.
