@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { BadgeCheck, ChevronRight, Fingerprint, Info, Lock, Globe } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Fingerprint, Info, LifeBuoy, Lock, Globe } from 'lucide-react';
+import { delayLabel } from '@/src/recovery';
 import { AppShell, copy, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
 import { useSession } from '@/lib/client/session';
@@ -33,6 +34,17 @@ function SettingsInner() {
               </span></span>
             </span>
           </div>
+        </section>
+
+        <div className="ghead"><b>If you lose your phone</b></div>
+        <section className="group">
+          <Link className="cell" href={'/settings/backup' + suffix}>
+            <span className="lft">
+              <span className="logo txt"><LifeBuoy size={18} aria-hidden /></span>
+              <span><span className="ct">Backup wallet</span><span className="cs" style={{ display: 'block' }}>{s.vault?.backup ? `On. Moves to your wallet after ${delayLabel(s.vault.backup.delayBlocks)} unused` : 'Off. Add one so your coins are never stuck'}</span></span>
+            </span>
+            <ChevronRight size={16} className="chev" aria-hidden />
+          </Link>
         </section>
 
         <div className="ghead"><b>Cubby ID</b></div>

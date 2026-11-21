@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/client/session';
 
-const OPEN = new Set(['/', '/welcome', '/how-it-works', '/terms', '/privacy', '/film', '/deck']);
+const OPEN = new Set(['/', '/welcome', '/how-it-works', '/terms', '/privacy', '/film', '/deck', '/recover']);
 
 export function Gate({ children }: { children: React.ReactNode }) {
   const s = useSession();

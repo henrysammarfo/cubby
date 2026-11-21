@@ -2,11 +2,14 @@
  * Size and op-cost distribution over many fresh signatures.
  * Usage: npx tsx scripts/report.ts [runs]
  */
-import { encodeTransactionBch } from '@bitauth/libauth';
+import { encodeTransactionBch, hexToBin } from '@bitauth/libauth';
 import { makeFixture, signedTx, evaluate } from '../test/fixtures.js';
 
 const runs = Number(process.argv[2] ?? 200);
-const f = await makeFixture();
+// --backup measures a box with the "never stuck" backup path (docs/BACKUP-RECOVERY.md).
+const withBackup = process.argv.includes('--backup');
+const f = await makeFixture(withBackup ? { lockingBytecode: hexToBin(`aa20${'33'.repeat(32)}87`), delayBlocks: 52_560 } : undefined);
+console.log(withBackup ? 'mode: backup on (worst case: 1 year delay, P2SH32 backup)' : 'mode: no backup');
 const variants = {
   plain: {},
   chromeExtra: { extra: ',"other_keys_can_be_added_here":"do not compare clientDataJSON against a template. See https://goo.gl/yabPex"' },
@@ -28,7 +31,7 @@ for (const [name, opts] of Object.entries(variants)) {
       continue;
     }
     const st = evaluate(tx, f.sourceOutputs);
-    if (st.error !== undefined) failed++;
+    if (st.error !== undefined || st.stack.length !== 1) failed++;
     ratios.push(st.metrics.operationCost / st.metrics.maximumOperationCost);
   }
   const stat = (a: number[]) => `min ${Math.min(...a).toFixed(3)} mean ${(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3)} max ${Math.max(...a).toFixed(3)}`;

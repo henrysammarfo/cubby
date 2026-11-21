@@ -18,7 +18,7 @@
  *  - The accumulator starts at G, so it never reaches the point at infinity
  *    and the final value must equal 2^128 * G.
  */
-import { cashAssemblyToBin, hash256, encodeLockingBytecodeP2sh32, utf8ToBin } from '@bitauth/libauth';
+import { binToHex, cashAssemblyToBin, hash256, encodeLockingBytecodeP2sh32, utf8ToBin } from '@bitauth/libauth';
 import { Asm } from './asm.js';
 import { B, G, G128, N, P, type Point } from './p256.js';
 
@@ -34,7 +34,68 @@ export interface VaultParams {
   readonly publicKey: Point;
   /** sha256 of the WebAuthn relying party ID, e.g. sha256("cubby.cash"). */
   readonly rpIdHash: Uint8Array;
+  /**
+   * Optional "never stuck" backup. When set, a coin that has not moved for
+   * `delayBlocks` blocks may be spent with no passkey, but only to
+   * `lockingBytecode` (the owner's own backup wallet), as the single output,
+   * keeping any tokens, and paying at most RECOVERY_MAX_FEE_SATS in fee.
+   * Leaving it unset gives the exact same script (and address) as before.
+   */
+  readonly backup?: BackupParams;
 }
+
+export interface BackupParams {
+  /** Locking bytecode of the backup wallet (P2PKH, P2SH20 or P2SH32). */
+  readonly lockingBytecode: Uint8Array;
+  /** Relative timelock in blocks (BIP68 block units), 1 to 65,535. */
+  readonly delayBlocks: number;
+}
+
+/** Most the recovery path may pay in fee. A recovery spend is about 1,250 bytes, so 1 sat per byte fits with room. */
+export const RECOVERY_MAX_FEE_SATS = 3_000n;
+/** BIP68 block-based relative locks use the low 16 bits of the sequence number. */
+export const MAX_RECOVERY_DELAY_BLOCKS = 0xffff;
+
+const isStandardPayLocking = (b: Uint8Array): boolean => {
+  const hex = binToHex(b);
+  return (
+    /^76a914[0-9a-f]{40}88ac$/u.test(hex) || // P2PKH
+    /^a914[0-9a-f]{40}87$/u.test(hex) || // P2SH20
+    /^aa20[0-9a-f]{64}87$/u.test(hex) // P2SH32
+  );
+};
+
+/**
+ * Recovery branch, run when the top unlocking item is empty (a passkey spend
+ * always ends with the hint chunk count, which is at least 1).
+ * Opcodes: OP_CHECKSEQUENCEVERIFY (BIP112, relative lock checked against this
+ * input's sequence number, BIP68), and the native introspection opcodes from
+ * the 2022 CashTokens and introspection upgrades (OP_TXINPUTCOUNT,
+ * OP_TXOUTPUTCOUNT, OP_OUTPUTBYTECODE, OP_OUTPUTVALUE, OP_UTXOVALUE,
+ * OP_OUTPUTTOKEN* and OP_UTXOTOKEN*).
+ */
+export const recoveryAsm = (backup: BackupParams): string => {
+  const d = backup.delayBlocks;
+  if (!Number.isInteger(d) || d < 1 || d > MAX_RECOVERY_DELAY_BLOCKS) {
+    throw new Error(`backup delay must be 1 to ${MAX_RECOVERY_DELAY_BLOCKS} blocks`);
+  }
+  if (!isStandardPayLocking(backup.lockingBytecode)) throw new Error('backup must be a standard P2PKH or P2SH address');
+  return [
+    'OP_DROP',
+    // The coin must be at least `d` blocks old (the node enforces the age; the VM checks the sequence number).
+    `<${d}> OP_CHECKSEQUENCEVERIFY OP_DROP`,
+    // Exactly one input (so OP_0 below is this coin) and one output.
+    'OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_1 OP_NUMEQUALVERIFY',
+    // The only output pays the backup wallet chosen at setup.
+    `OP_0 OP_OUTPUTBYTECODE <0x${binToHex(backup.lockingBytecode)}> OP_EQUALVERIFY`,
+    // Tokens on the coin, if any, move with it unchanged (nobody can burn them).
+    'OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY',
+    'OP_0 OP_OUTPUTTOKENCOMMITMENT OP_0 OP_UTXOTOKENCOMMITMENT OP_EQUALVERIFY',
+    'OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_UTXOTOKENAMOUNT OP_NUMEQUALVERIFY',
+    // Fee cap: output value + max fee >= coin value, so nobody can burn the coins as fee.
+    `OP_0 OP_OUTPUTVALUE <${RECOVERY_MAX_FEE_SATS}> OP_ADD OP_0 OP_UTXOVALUE OP_GREATERTHANOREQUAL`,
+  ].join('\n');
+};
 
 export const compileAsm = (source: string): Uint8Array => {
   const result = cashAssemblyToBin(source);
@@ -259,7 +320,13 @@ export const buildRedeemAsm = (params: VaultParams): string => {
   // 11. Clean stack: keep only the result.
   a.raw('OP_TOALTSTACK OP_BEGIN OP_DROP OP_DEPTH OP_NOT OP_UNTIL OP_FROMALTSTACK', a.stack.length, ['ok']);
 
-  parts.push(a.source());
+  if (params.backup === undefined) {
+    parts.push(a.source());
+    return parts.join('\n');
+  }
+  // Backup on: OP_DUP OP_NOTIF <recovery> OP_ELSE <passkey path> OP_ENDIF.
+  // The passkey path is byte for byte the same code; only 4 control bytes plus the recovery body are added.
+  parts.push('OP_DUP OP_NOTIF', recoveryAsm(params.backup), 'OP_ELSE', a.source(), 'OP_ENDIF');
   return parts.join('\n');
 };
 
