@@ -39,7 +39,9 @@ function ReceiveInner() {
           <button className="btn" type="button" onClick={() => void copy(address, 'Address copied')}><Copy size={16} aria-hidden />Copy</button>
           <button className="btn" type="button" onClick={() => void share()}><Share size={16} aria-hidden />Share</button>
         </div>
-        <p className="hint">Send at least 20 000 test units so a later send can cover the network fee. Test coins have no value.</p>
+        <p className="hint">{s.networkId === 'mainnet'
+          ? 'Send 20 000 units (0.0002 BCH) so a later send can cover the network fee. A send is capped at 9 000 units.'
+          : 'Send at least 20 000 test units so a later send can cover the network fee. Test coins have no value.'}</p>
       </main>
     </AppShell>
   );
