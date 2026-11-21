@@ -121,7 +121,7 @@ h1 .face{background:linear-gradient(95deg,#FF5A1F 0%,#FF8A2B 45%,#FFC53D 100%);-
 
 .artcol{position:relative;z-index:2;min-height:520px}
 .art{position:absolute;inset:0 0 0 -8%;will-change:transform}
-.art img{position:absolute;right:0;bottom:0;height:100%;width:auto;max-width:none;-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 26%),linear-gradient(0deg,transparent 0%,#000 12%);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0%,#000 26%),linear-gradient(0deg,transparent 0%,#000 12%);mask-composite:intersect;user-select:none}
+.art img{position:absolute;right:0;bottom:0;height:100%;width:auto;max-width:none;user-select:none}
 
 /* stickers: Family style floating chips, glass where they float over art */
 .sticker{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:8px;padding:9px 14px 9px 9px;border-radius:999px;font-weight:700;font-size:.875rem;background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);box-shadow:inset 0 0 0 .5px var(--glass-line),inset 0 1px 0 var(--glass-edge),0 12px 30px rgba(0,0,0,.45)}

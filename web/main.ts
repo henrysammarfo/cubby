@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { EMBER_TOKEN_ADDRESS, REPO_URL, WIDGET_FACTORY_URL } from '../src/banner.js';
 import { getNetwork, explorerTxUrl, explorerAddressUrl, type Network, type NetworkId } from '../src/network.js';
 import { assertNetworkAddress, addressToLocking, p2pkhAddressFromPublicKey } from '../src/address.js';
-import { addressesHaveHistory, broadcastTransaction, pusdBalanceFromWatchtower, utxosFromApi, utxosFromTransaction, utxosFromWatchtower, type ChainUtxo } from '../src/chain.js';
+import { addressesHaveHistory, broadcastTransaction, getTransaction, pusdBalanceFromWatchtower, utxosFromApi, utxosFromTransaction, utxosFromWatchtower, type ChainUtxo } from '../src/chain.js';
 import { scanAddressBatches } from '../src/wallet-scan.js';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '../src/vault-spend.js';
 import { createDeviceLock, loadVault, requestAssertion, vaultFromStored, currentRpId, type StoredVault } from './passkey.js';
@@ -109,21 +109,52 @@ const refreshBalances = async (): Promise<void> => {
   }
 };
 
+const readyStep = (): number => {
+  const lockReady = Boolean(stored && stored.rpId === currentRpId());
+  if (vaultUtxo && lockReady) return 4;
+  if (lockReady) return 3;
+  if (wallet) return 2;
+  return 1;
+};
+
+const paintStepper = (open?: number): void => {
+  const ready = readyStep();
+  const openStep = open ?? ready;
+  document.querySelectorAll('#tryStepper .step').forEach((el) => {
+    const n = Number((el as HTMLElement).dataset.step);
+    el.classList.toggle('is-open', n === openStep);
+    el.classList.toggle('is-done', n < ready);
+    el.classList.toggle('is-active', n === ready);
+    el.classList.toggle('is-locked', n > ready);
+  });
+  document.querySelectorAll('#tryRail li').forEach((el) => {
+    const n = Number((el as HTMLElement).dataset.n);
+    el.classList.toggle('is-done', n < ready);
+    el.classList.toggle('is-active', n === ready);
+  });
+};
 const setWalletConnected = (session: WalletSession | undefined): void => {
   wallet = session;
   button('disconnect').classList.toggle('hidden', !session);
+  button('reconnect').classList.add('hidden');
   button('fundWallet').disabled = !session || !stored || stored.rpId !== currentRpId() || !network.allowBroadcast;
   if (session) input('dest').value = session.address;
   void refreshBalances();
+  paintStepper();
 };
 
 const markWalletDropped = (reason: string): void => {
   wallet = undefined;
+  walletCoins = [];
   button('disconnect').classList.add('hidden');
   button('fundWallet').disabled = true;
   $('qrWrap').classList.add('hidden');
-  setStatus('walletStatus', 'err', reason);
+  setStatus('walletStatus', 'err', 'Wallet disconnected');
   $('walletBalance').textContent = 'Wallet disconnected';
+  button('reconnect').classList.remove('hidden');
+  paintStepper();
+  void stopConnect();
+  void reason;
 };
 
 const refreshNetworkCopy = (): void => {
@@ -137,6 +168,7 @@ const refreshNetworkCopy = (): void => {
   if (stored && stored.network === network.id && stored.rpId === currentRpId()) showVault(stored);
   refreshActivity();
   void refreshBalances();
+  paintStepper();
 };
 
 const applyNetwork = (id: NetworkId): void => {
@@ -164,6 +196,7 @@ const showVault = (vault: StoredVault): void => {
   );
   $('vaultAddress').textContent = vault.address;
   $('copyVault').classList.remove('hidden');
+  paintStepper();
   void findVaultCoins(true);
 };
 
@@ -251,6 +284,11 @@ $('newQr').addEventListener('click', () => {
   setStatus('walletStatus', 'info', 'Getting a fresh code…');
   void beginConnect();
 });
+$('reconnect').addEventListener('click', () => {
+  button('reconnect').classList.add('hidden');
+  setStatus('walletStatus', 'info', 'Getting a fresh code…');
+  void beginConnect();
+});
 
 $('disconnect').addEventListener('click', async () => {
   await stopConnect();
@@ -288,6 +326,7 @@ $('copyVault').addEventListener('click', async () => {
 const rememberUtxo = (utxo: ChainUtxo): void => {
   vaultUtxo = utxo;
   button('spend').disabled = !network.allowBroadcast;
+  paintStepper();
   setStatus(
     'fundStatus',
     utxo.satoshis >= network.recommendedFundSats ? 'ok' : 'info',
@@ -442,8 +481,33 @@ $('spend').addEventListener('click', async () => {
   }
 });
 
+const shortTxid = (txid: string): string => (txid.length <= 16 ? txid : `${txid.slice(0, 8)}…${txid.slice(-6)}`);
+const shortAddress = (address: string): string => {
+  const [prefix, body] = address.includes(':') ? (address.split(':') as [string, string]) : (['', address] as const);
+  if (body.length <= 10) return address;
+  return `${prefix}:${body.slice(0, 4)}…${body.slice(-4)}`;
+};
+
+const fillProofTicket = async (kind: 'spend' | 'fund', txid: string, url: string): Promise<void> => {
+  const link = $(kind === 'spend' ? 'proofSpend' : 'proofFund') as HTMLAnchorElement;
+  link.href = url;
+  const short = $(kind === 'spend' ? 'proofSpendShort' : 'proofFundShort');
+  short.textContent = shortTxid(txid);
+  const conf = $(kind === 'spend' ? 'proofSpendConf' : 'proofFundConf');
+  try {
+    const tx = await getTransaction(getNetwork('chipnet'), txid);
+    const count = tx.confirmations;
+    if (typeof count === 'number' && count >= 0) {
+      conf.textContent = count === 1 ? '1 confirmation on the test network' : `${count} confirmations on the test network`;
+      return;
+    }
+  } catch {
+    /* Keep the static confirmed line. */
+  }
+  conf.textContent = 'Confirmed on the test network';
+};
+
 const loadDemoProof = async (): Promise<void> => {
-  const host = $('demoProof');
   try {
     const response = await fetch('/demo-proof.json', { cache: 'no-store' });
     if (!response.ok) return;
@@ -457,23 +521,77 @@ const loadDemoProof = async (): Promise<void> => {
     };
     const spend = proof.spendTxid ?? proof.spend;
     const fund = proof.fundTxid ?? proof.fund;
-    if (!spend) return;
     const chipnet = getNetwork('chipnet');
-    const spendUrl = proof.explorer?.spend ?? explorerTxUrl(chipnet, spend);
-    const fundUrl = fund ? (proof.explorer?.fund ?? explorerTxUrl(chipnet, fund)) : '';
-    const vault = proof.vaultAddress ?? '';
-    host.innerHTML = `<p><strong>Completed test network spend</strong> (chipnet, these coins have no value)</p>
-      <p>A real deposit and a passkey-approved send are already on the test network, so you can inspect them without setting anything up.</p>
-      <ul>
-        <li><a id="proofSpend" href="${spendUrl}" target="_blank" rel="noreferrer">Open the test network spend</a></li>
-        ${fundUrl ? `<li><a id="proofFund" href="${fundUrl}" target="_blank" rel="noreferrer">Open the test network deposit</a></li>` : ''}
-        ${vault ? `<li>Test network box address: <code id="proofVault" class="mono">${vault}</code></li>` : ''}
-      </ul>`;
+    if (spend) {
+      await fillProofTicket('spend', spend, proof.explorer?.spend ?? explorerTxUrl(chipnet, spend));
+    }
+    if (fund) {
+      await fillProofTicket('fund', fund, proof.explorer?.fund ?? explorerTxUrl(chipnet, fund));
+    }
+    const vault = proof.vaultAddress;
+    if (vault) {
+      const el = $('proofVault');
+      el.setAttribute('data-full', vault);
+      el.setAttribute('title', vault);
+      el.textContent = shortAddress(vault);
+    }
   } catch {
     /* The static markup in the page already has the completed test network links. */
   }
 };
 
+
+
+document.querySelectorAll('#tryStepper .step-head').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const n = Number((btn as HTMLElement).dataset.open);
+    if (!Number.isFinite(n) || n > readyStep()) return;
+    paintStepper(n);
+  });
+});
+
+$('demoFilmPlay').addEventListener('click', () => {
+  const host = $('demoFilmPlay');
+  const video = document.createElement('video');
+  video.src = '/cubby-demo.mp4';
+  video.controls = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.poster = '/mascot/cubby-hero-1280.jpg';
+  host.replaceWith(video);
+  void video.play();
+});
+
+$('copyProofVault').addEventListener('click', async () => {
+  const el = $('proofVault');
+  const full = el.getAttribute('data-full') ?? el.getAttribute('title') ?? el.textContent ?? '';
+  if (full) await navigator.clipboard.writeText(full);
+});
+
+const revealSections = (): void => {
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shot = new URLSearchParams(location.search).has('shot') || new URLSearchParams(location.search).has('state');
+  document.querySelectorAll('.reveal').forEach((el) => {
+    if (reduced || shot) {
+      el.classList.add('is-in');
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('is-in');
+          io.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+  });
+};
+
 if (stored && stored.rpId === currentRpId()) showVault(stored);
 refreshNetworkCopy();
+paintStepper();
+revealSections();
 void loadDemoProof();

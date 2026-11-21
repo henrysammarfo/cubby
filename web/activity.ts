@@ -40,29 +40,37 @@ export const recordActivity = (item: ActivityItem): void => {
 export const renderActivity = (host: HTMLElement, items: ActivityItem[], network: Network): void => {
   host.replaceChildren();
   if (items.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'muted';
-    p.textContent = 'No deposits or spends recorded on this device yet. They will appear here after you move coins.';
-    host.append(p);
+    const empty = document.createElement('div');
+    empty.className = 'activity-empty';
+    empty.innerHTML = '<img src="/mascot/cubby-hero-1280.jpg" width="280" height="180" alt="Cubby, the vault keeper"><p><b>Nothing yet.</b> Your first deposit shows up here</p>';
+    host.append(empty);
     return;
   }
   const list = document.createElement('ul');
-  list.className = 'activity';
+  list.className = 'activity timeline';
   for (const item of items) {
     const li = document.createElement('li');
+    const tile = document.createElement('span');
+    tile.className = item.kind === 'deposit' ? 'tile in' : 'tile out';
+    tile.textContent = item.kind === 'deposit' ? 'In' : 'Out';
+    const mid = document.createElement('div');
     const title = document.createElement('strong');
     title.textContent = item.kind === 'deposit' ? 'Deposit' : 'Spend';
-    const meta = document.createElement('p');
-    meta.className = 'muted';
     const when = new Date(item.at);
     const timeLabel = Number.isNaN(when.getTime()) ? item.at : when.toLocaleString('en-GB', { timeZone: 'Africa/Accra' }) + ' Accra';
-    meta.textContent = `${item.satoshis} units · ${timeLabel}`;
+    const meta = document.createElement('p');
+    meta.className = 'when';
+    meta.textContent = timeLabel;
     const link = document.createElement('a');
     link.href = explorerTxUrl(network, item.txid);
     link.target = '_blank';
     link.rel = 'noreferrer';
-    link.textContent = 'Open this payment on the explorer';
-    li.append(title, meta, link);
+    link.textContent = 'Open in explorer';
+    mid.append(title, meta, link);
+    const amt = document.createElement('span');
+    amt.className = 'amt';
+    amt.textContent = `${item.satoshis} units`;
+    li.append(tile, mid, amt);
     list.append(li);
   }
   host.append(list);

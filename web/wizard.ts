@@ -5,6 +5,14 @@ import { encodeTransactionBch, hexToBin } from '@bitauth/libauth';
 import type { Network } from '../src/network.js';
 import { p2pkhAddressFromPublicKey, addressToLocking } from '../src/address.js';
 import type { ChainUtxo } from '../src/chain.js';
+import {
+  CONNECT_TIMEOUT_MS,
+  HEARTBEAT_INTERVAL_MS,
+  initialLinkState,
+  reduceLink,
+  type LinkEvent,
+  type LinkState,
+} from '../src/wallet-link.js';
 
 export interface WalletSession {
   readonly manager: DappConnectionManager;
@@ -27,19 +35,40 @@ export type ConnectHandlers = {
   onError: (message: string) => void;
 };
 
-const CONNECT_TIMEOUT_MS = 45_000;
 const RELAYS = ['wss://relay.riften.net:443'];
 
 let relay: DappRelayResult | null = null;
 let manager: DappConnectionManager | null = null;
 let timeoutId: ReturnType<typeof setTimeout> | undefined;
+let beatId: ReturnType<typeof setInterval> | undefined;
 let currentUri = '';
 let droppedHandler: ((reason: string) => void) | undefined;
 let settled = false;
+let link: LinkState = initialLinkState(0);
+let applyLink: ((event: LinkEvent, now?: number) => void) | undefined;
 
 const clearTimer = (): void => {
   if (timeoutId !== undefined) clearTimeout(timeoutId);
   timeoutId = undefined;
+  if (beatId !== undefined) clearInterval(beatId);
+  beatId = undefined;
+};
+
+const startWatch = (handlers: ConnectHandlers): void => {
+  link = initialLinkState(Date.now());
+  applyLink = (event, now = Date.now()) => {
+    const result = reduceLink(link, event, now);
+    link = result.state;
+    if (result.action === 'timeout') {
+      clearTimer();
+      handlers.onTimeout();
+    } else if (result.action === 'dropped') {
+      const notify = droppedHandler;
+      applyLink = undefined;
+      clearTimer();
+      notify?.('Wallet disconnected');
+    }
+  };
 };
 
 export const getConnectionLink = (): string => currentUri;
@@ -48,18 +77,16 @@ export const startConnect = async (handlers: ConnectHandlers, network: Network):
   await stopConnect();
   settled = false;
   droppedHandler = handlers.onDropped;
-  handlers.onStatus('Opening a private WizardConnect link to your wallet. This should finish in under a minute.');
+  startWatch(handlers);
+  applyLink?.({ type: 'start' });
+  handlers.onStatus('Waiting for your wallet. If nothing happens in 20 seconds, tap New code.');
   manager = new DappConnectionManager('Cubby', undefined, { session: false });
   try {
     relay = initiateDappRelay((payload) => {
       manager?.updateConnection(payload.client, payload.status);
       const status = payload.status.status;
-      if (status === 'reconnecting') {
-        handlers.onStatus('The wallet link dropped. Trying to reconnect…');
-      } else if (status === 'disconnected' || status === 'session_deleted') {
-        if (!settled) return;
-        handlers.onDropped('The wallet closed the link. Connect again before you send.');
-      } else if (payload.status.error) {
+      applyLink?.({ type: 'relay', status });
+      if (payload.status.error && link.phase !== 'dead') {
         handlers.onError(`WizardConnect error: ${payload.status.error}`);
       }
     }, { explicitRelayUrls: RELAYS, maxReconnectAttempts: 3, reconnectInterval: 2000 });
@@ -79,28 +106,28 @@ export const startConnect = async (handlers: ConnectHandlers, network: Network):
       return;
     }
     settled = true;
+    applyLink?.({ type: 'ready' });
     clearTimer();
+    beatId = setInterval(() => applyLink?.({ type: 'tick' }), HEARTBEAT_INTERVAL_MS);
     const address = p2pkhAddressFromPublicKey(pubkey, network);
     handlers.onReady({ manager, address, walletName: manager.walletName ?? 'wallet' });
   };
 
   manager.on('walletready', finishReady);
-  manager.on('disconnect', (reason, message) => {
-    const text = message || String(reason) || 'The wallet closed the link.';
-    if (!settled) {
-      handlers.onError(`The wallet disconnected before it finished connecting. ${text}`);
-      return;
-    }
-    droppedHandler?.(text);
+  manager.on('disconnect', (_reason, _message) => {
+    applyLink?.({ type: 'relay', status: 'disconnected' });
+  });
+  manager.on('reconnecting', () => {
+    applyLink?.({ type: 'relay', status: 'reconnecting' });
   });
 
-  timeoutId = setTimeout(() => {
-    if (settled) return;
-    handlers.onTimeout();
-  }, CONNECT_TIMEOUT_MS);
+  timeoutId = setTimeout(() => applyLink?.({ type: 'tick' }), CONNECT_TIMEOUT_MS);
+  beatId = setInterval(() => applyLink?.({ type: 'tick' }), HEARTBEAT_INTERVAL_MS);
 };
 
 export const stopConnect = async (): Promise<void> => {
+  applyLink?.({ type: 'stop' });
+  applyLink = undefined;
   clearTimer();
   currentUri = '';
   droppedHandler = undefined;

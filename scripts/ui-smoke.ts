@@ -16,7 +16,13 @@ const shot = async (page: Page, name: string): Promise<void> => {
 
 const overflowAt = async (browser: Browser, width: number, engine: string): Promise<void> => {
   const page = await browser.newPage({ viewport: { width, height: 844 } });
-  await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
+  try {
+    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  } catch (error) {
+    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    void error;
+  }
+  await page.waitForSelector('#stage');
   await page.waitForTimeout(400);
   const m = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
@@ -66,6 +72,14 @@ const runChromiumScreens = async (): Promise<void> => {
     await shot(page, `home-success-${label}`);
 
     await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
+    await page.locator('#demoFilm').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await shot(page, `film-${label}`);
+
+    await page.locator('#demoProof').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await shot(page, `proof-${label}`);
+
     await page.locator('#how').scrollIntoViewIfNeeded();
     await page.waitForTimeout(200);
     await shot(page, `how-${label}`);
@@ -87,6 +101,10 @@ const runChromiumScreens = async (): Promise<void> => {
     await page.locator('#business').scrollIntoViewIfNeeded();
     await page.waitForTimeout(200);
     await shot(page, `business-${label}`);
+
+    await page.locator('footer.site').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await shot(page, `footer-${label}`);
 
     await page.evaluate(() => {
       const modal = document.getElementById('reviewModal') as HTMLDialogElement | null;
