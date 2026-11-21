@@ -4,13 +4,14 @@
   "description": "Cubby: passkey (WebAuthn P-256) signing gate for Bitcoin Cash covenants",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json --noEmit",
-    "build": "tsc --noEmit && vitest run && vite build --config web/vite.config.ts",
-    "build:web": "vite build --config web/vite.config.ts",
-    "dev": "vite --config web/vite.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit",
+    "build": "tsc --noEmit -p tsconfig.src.json && vitest run && next build",
+    "build:web": "next build",
+    "dev": "next dev --port 4173",
     "size": "tsx scripts/report.ts",
     "chipnet-e2e": "tsx scripts/chipnet-e2e.ts",
-    "ui-smoke": "tsx scripts/ui-smoke.ts"
+    "ui-smoke": "tsx scripts/ui-smoke.ts",
+    "start": "next start --port 4173"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -19,17 +20,23 @@
     "@bitauth/libauth": "3.1.0-next.8",
     "@noble/curves": "2.4.0",
     "@noble/hashes": "2.4.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@wizardconnect/core": "0.2.11",
     "@wizardconnect/dapp": "0.2.8",
     "buffer": "6.0.3",
-    "qrcode": "1.5.4"
+    "lucide-react": "^0.544.0",
+    "next": "^15.5.29",
+    "qrcode": "1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
     "@types/qrcode": "1.5.6",
     "playwright": "^1.65.1",
     "tsx": "4.23.15",
-    "typescript": "7.0.2",
+    "typescript": "^6.0.3",
     "vite": "8.3.8",
     "vitest": "5.1.0"
   },

@@ -36,7 +36,7 @@ These are real chipnet transactions (coins have no value). They were built by th
 - Passkey spend: https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993
 - Box address: `bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk`
 
-These proof payments are documented here and in docs/ARCHITECTURE.md. They are not shown in the app as if they were a visitor’s own phone spend.
+These proof payments are documented here and in docs/ARCHITECTURE.md. The in-app demo box (`?demo=1`) shows them with a “Demo box” label. They are not presented as a visitor’s own phone spend.
 
 ## What the covenant checks (one input, no helper outputs)
 
@@ -70,18 +70,23 @@ Run `npm run size` for a fresh distribution.
 npm install
 npm test              # unit tests: acceptance, negatives, wallet link, WebAuthn parsing
 npm run typecheck
-npm run dev           # local demo at http://localhost:5173
-npm run build:web
+npm run dev           # Next.js app at http://localhost:4173
+npm run build         # typecheck, unit tests, then next build
 npx tsx scripts/chipnet-e2e.ts   # faucet, fund, software passkey spend on chipnet
 npx tsx scripts/ui-auth-e2e.ts    # virtual authenticator through the real UI (needs chipnet coins)
-npx tsx scripts/ui-smoke.ts        # landing and app screenshots
+npx tsx scripts/ui-smoke.ts        # screenshots of every route at 390 and 1440
 ```
+
+The app is Next.js 15 (App Router) in `app/`. Protocol code is unchanged in `src/`. Live passkey and WizardConnect clients stay in `web/passkey.ts` and `web/wizard.ts`.
+
+Routes: `/` landing, `/welcome` (splash, slides, hello, face, ready), `/wallet`, `/wallet/bch`, `/receive`, `/send`, `/send/success`, `/activity`, `/activity/[tx]`, `/connect`, `/settings`, `/how-it-works`, `/terms`, `/privacy`. `/send/review` redirects to `/send`. Add `?demo=1` to open the labelled demo box (real chipnet payments `8f9e1dd3…` and `2ac70a7c…`).
 
 `harness/passkey-device-check.html` is still there for collecting a raw device assertion.
 
 ## Where to read
 
-- `web/`: the live app (short landing plus the box screens)
+- `app/`: the live Next.js app (landing and box screens)
+- `web/passkey.ts`, `web/wizard.ts`: phone lock and WizardConnect clients used by those screens
 - `src/covenant.ts`: the on-chain check (CashAssembly generated with a small named-stack helper, `src/asm.ts`)
 - `src/vault-spend.ts`, `src/p2pkh-send.ts`, `src/chain.ts`: payment building and explorer access
 - `test/gate.test.ts`: acceptance tests from plan section 6.1 plus negative cases

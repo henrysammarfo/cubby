@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Cubby">
+  <defs>
+    <linearGradient id="ember" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF5A1F"/>
+      <stop offset="1" stop-color="#FFC53D"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#ember)" fill-rule="evenodd" d="M14 4h36a12 12 0 0 1 12 12v32a12 12 0 0 1-12 12H14A12 12 0 0 1 2 48V16A12 12 0 0 1 14 4Z M32 16c-5.523 0-10 4.477-10 10 0 3.394 1.684 6.39 4.27 8.22L22 48h20L37.73 34.22A9.96 9.96 0 0 0 42 26c0-5.523-4.477-10-10-10Z"/>
+  
+  <g fill="none" stroke="#0B0B0F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M22 22.5v-3.2h3.2"/>
+    <path d="M42 22.5v-3.2h-3.2"/>
+    <path d="M22 29.5v3.2h3.2"/>
+    <path d="M42 29.5v3.2h-3.2"/>
+  </g>
+
+
+</svg>

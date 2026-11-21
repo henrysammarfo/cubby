@@ -6,3 +6,5 @@ out/
 .vercel/
 web/dist/
 *.wif
+.next/
+tsconfig.tsbuildinfo

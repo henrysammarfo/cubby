@@ -1,15 +1,52 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
     "skipLibCheck": true,
+    "strict": true,
     "noEmit": true,
-    "types": ["node"]
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
   },
-  "include": ["src", "test", "scripts"]
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "ui/**/*.ts",
+    "ui/**/*.tsx",
+    "src/**/*.ts",
+    "web/passkey.ts",
+    "web/wizard.ts",
+    "web/hold.ts",
+    ".next/types/**/*.ts",
+    "css.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "web/dist",
+    "scripts",
+    "test"
+  ]
 }

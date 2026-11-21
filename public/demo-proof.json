@@ -1,0 +1,16 @@
+{
+  "network": "chipnet",
+  "networkLabel": "Test network",
+  "vaultAddress": "bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk",
+  "faucetTxid": "0f44dde17217258290fd77d4a926cde5d654503d49080fac811cfeeaa34bb149",
+  "fundTxid": "8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7",
+  "spendTxid": "2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993",
+  "fund": "8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7",
+  "spend": "2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993",
+  "explorer": {
+    "faucet": "https://chipnet.bchexplorer.info/tx/0f44dde17217258290fd77d4a926cde5d654503d49080fac811cfeeaa34bb149",
+    "fund": "https://chipnet.bchexplorer.info/tx/8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7",
+    "spend": "https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993"
+  },
+  "note": "Completed test network spend from the chipnet end to end script. This is a new project; there is no earlier demo or repo."
+}

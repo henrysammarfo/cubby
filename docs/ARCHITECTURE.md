@@ -2,6 +2,8 @@
 
 Cubby’s box is a P2SH32 Bitcoin Cash output. The redeem script, not a server, checks that a WebAuthn (passkey) approval matches the exact payment being spent. This document is for readers who want the mechanism. The in-app UI never uses these words.
 
+The visible app is a Next.js 15 App Router front end in `app/`. Send still calls `buildUnsignedVaultSpend`, `requestAssertion`, `attachPasskeyUnlock`, and `broadcastTransaction` from `src/` and `web/passkey.ts`. Prices and the optional 7-day chart come only from CoinGecko (`app/api/price`, `app/api/chart`). If those requests fail, the app shows no fiat figure and no chart.
+
 ## Path of a send
 
 1. The app builds an unsigned 1-input transaction (`src/vault-spend.ts`, `buildUnsignedVaultSpend`). The destination, optional change back to the box, fee, version, and locktime are fixed before approval.

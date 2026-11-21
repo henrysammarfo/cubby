@@ -15,7 +15,7 @@ Legend: **true**, **partial**, **false**, **cut**.
 
 | Claim | Verdict | Proof or fix |
 |---|---|---|
-| “A box only your face can open.” | **partial** | The box opens when this device’s screen lock (Face ID, fingerprint, or Windows Hello) approves a WebAuthn assertion. The chain checks that assertion; it does not see a face. Kept as plain-language headline, with the one-line explanation under it. `web/index.html` landing. |
+| “A box only your face can open.” | **partial** | The box opens when this device’s screen lock (Face ID, fingerprint, or Windows Hello) approves a WebAuthn assertion. The chain checks that assertion; it does not see a face. Kept as plain-language headline, with the one-line explanation under it. `app/page.tsx` landing. |
 | “Lock Bitcoin Cash with Face ID or your fingerprint. The chain checks the approval itself.” | **true** (wording tightened) | Redeem script rebuilds the payment intent and checks the WebAuthn wrapper, including UP and UV flags: `src/covenant.ts` lines 167–182, flag check at line 178. Not a claim that a real iPhone Face ID spend has already been completed. |
 | “Bitcoin Cash · test network ready” | **true** | Default network is chipnet, `src/network.ts` `DEFAULT_NETWORK`. |
 | “Test network coins have no value. Sending on the main network stays off until it is approved.” | **true** | `NETWORKS.mainnet.allowBroadcast` is `false` (`src/network.ts`). Broadcast throws if flipped without approval (`src/chain.ts` `broadcastTransaction`). |
@@ -70,3 +70,7 @@ Legend: **true**, **partial**, **false**, **cut**.
 - Software-passkey chipnet tickets are no longer presented on the site as if they were a visitor’s phone spend. They remain in README and architecture docs, labelled honestly.
 - README “20/20 tests” and “no logo” are corrected.
 - BUIDL/Telegram drafts no longer imply a completed real-phone Face ID spend.
+
+## Front end structure (same day, later pass)
+
+The public site is now a Next.js 15 app in `app/`, still on https://cubby-liart-six.vercel.app. Protocol behaviour and the claims above are unchanged. Demo screens that show the chipnet proof payments are labelled “Demo box”. Fiat amounts and the coin chart appear only when CoinGecko returns a price.
