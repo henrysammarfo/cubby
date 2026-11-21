@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Cubby</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="chrome">
+    <div class="banner" role="banner">
+      <ul>
+        <li><a id="widgetLink" href="https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing" target="_blank" rel="noreferrer">Widget Factory introduction</a></li>
+        <li><a id="repoLink" href="https://github.com/henrysammarfo/cubby" target="_blank" rel="noreferrer">Source code</a></li>
+        <li class="ember">
+          <span>EMBER 2026 and prize payout address</span>
+          <code id="emberAddress" class="mono"></code>
+          <button type="button" id="copyEmber" class="tiny">Copy address</button>
+        </li>
+      </ul>
+    </div>
+    <div class="topbar">
+      <div class="network-switch">
+        <label for="network">Network</label>
+        <select id="network" aria-describedby="networkHelp">
+          <option value="chipnet">Test network</option>
+          <option value="mainnet">Main network (no sending yet)</option>
+        </select>
+      </div>
+      <div id="walletBalance" class="balances" role="status">No wallet connected</div>
+    </div>
+    <nav class="tabs" aria-label="Page sections">
+      <a href="#see">See it</a>
+      <a href="#try">Try it</a>
+      <a href="#activity">My activity</a>
+    </nav>
+  </header>
+  <main id="main">
+    <section id="see" class="card hero" aria-labelledby="title">
+      <h1 id="title">Cubby</h1>
+      <p class="hero-line">Your face or fingerprint opens a Bitcoin Cash box, and the chain itself checks the approval.</p>
+      <figure class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 320 140" width="320" height="140" role="img">
+          <title>A phone lock opening a box of coins</title>
+          <rect x="18" y="22" width="70" height="108" rx="12" fill="#fff" stroke="#1b1635" stroke-width="3"/>
+          <circle cx="53" cy="70" r="16" fill="none" stroke="#3a3cff" stroke-width="4"/>
+          <circle cx="53" cy="70" r="5" fill="#3a3cff"/>
+          <path d="M98 70 H150" stroke="#1b1635" stroke-width="3"/>
+          <polygon points="140,62 156,70 140,78" fill="#1b1635"/>
+          <rect x="170" y="48" width="110" height="70" rx="10" fill="#ffe8d6" stroke="#1b1635" stroke-width="3"/>
+          <path d="M170 66 H280" stroke="#1b1635" stroke-width="3"/>
+          <circle cx="200" cy="96" r="10" fill="#ffd36a" stroke="#8a4b00"/>
+          <circle cx="224" cy="92" r="10" fill="#ffd36a" stroke="#8a4b00"/>
+          <circle cx="248" cy="98" r="10" fill="#ffd36a" stroke="#8a4b00"/>
+        </svg>
+      </figure>
+      <div id="demoProof"></div>
+      <p class="muted">This project started during BLAZE 2026. There is no earlier demo or earlier repository.</p>
+    </section>
+
+    <section id="try">
+      <p id="networkHelp" class="muted">The test network coins have no value. A send needs about 20 000 test units in the box so the fee fits.</p>
+      <section class="card" aria-labelledby="step1">
+        <h2 id="step1">1. Connect a wallet with WizardConnect (optional)</h2>
+        <p>This uses WizardConnect, not WalletConnect v2. Set your wallet to the same network as the switch above. You can also skip this and send coins to the box address yourself.</p>
+        <div class="row">
+          <button type="button" id="connect">Connect wallet</button>
+          <button type="button" id="disconnect" class="secondary hidden">Disconnect</button>
+        </div>
+        <p id="walletStatus" class="status info hidden" role="status"></p>
+        <div id="qrWrap" class="hidden">
+          <p>Scan this WizardConnect code in your wallet, or copy the connection link. Clicking the code also copies the link.</p>
+          <button type="button" id="qrButton" class="qr-button" aria-label="Copy connection link">
+            <canvas id="qr" width="240" height="240"></canvas>
+          </button>
+          <p class="mono" id="wcUri"></p>
+          <button type="button" id="copyUri" class="secondary">Copy connection link</button>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="step2">
+        <h2 id="step2">2. Create your phone lock</h2>
+        <p>This uses the built in face or fingerprint check on this device. The lock is tied to this website address.</p>
+        <div class="row">
+          <button type="button" id="createLock">Create phone lock</button>
+        </div>
+        <p id="lockStatus" class="status info hidden" role="status"></p>
+        <p class="mono" id="vaultAddress"></p>
+        <div class="row">
+          <button type="button" id="copyVault" class="secondary hidden">Copy box address</button>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="step3">
+        <h2 id="step3">3. Put coins in the box</h2>
+        <p>Send at least <strong id="fundNeed">20 000</strong> units to the box address. Or paste the payment id after you send them.</p>
+        <div class="row">
+          <button type="button" id="fundWallet" disabled>Send from connected wallet</button>
+        </div>
+        <label for="fundTxid">Payment id (if you already sent coins)</label>
+        <input id="fundTxid" spellcheck="false" autocomplete="off" placeholder="The payment id from your wallet or the faucet">
+        <div class="row">
+          <button type="button" id="checkFund">Find the coins</button>
+        </div>
+        <p id="fundStatus" class="status info hidden" role="status"></p>
+      </section>
+      <section class="card" aria-labelledby="step4">
+        <h2 id="step4">4. Send them back with your face or fingerprint</h2>
+        <label for="dest">Send to this address</label>
+        <input id="dest" spellcheck="false" autocomplete="off" placeholder="Your wallet address on this network">
+        <p id="destError" class="status err hidden" role="alert"></p>
+        <div class="row">
+          <button type="button" id="spend" disabled>Approve and send</button>
+        </div>
+        <p id="spendStatus" class="status info hidden" role="status"></p>
+        <p id="resultLinks"></p>
+      </section>
+    </section>
+
+    <section id="activity" class="card" aria-labelledby="activityTitle">
+      <h2 id="activityTitle">My activity</h2>
+      <p class="muted">Deposits and spends for the box on this device, with explorer links.</p>
+      <div id="activityList"></div>
+    </section>
+
+    <footer>
+      <p>Sahid Miller first showed a passkey style Bitcoin Cash spend (signatures.cash). Cubby is a new implementation, written from scratch, with the chain rebuilding the payment intent itself.</p>
+    </footer>
+  </main>
+
+  <dialog id="reviewModal" aria-labelledby="reviewTitle">
+    <form method="dialog">
+      <h2 id="reviewTitle">Review this action</h2>
+      <dl id="reviewBody"></dl>
+      <div class="row">
+        <button type="submit" value="cancel" class="secondary">Cancel</button>
+        <button type="submit" value="confirm" id="reviewConfirm">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

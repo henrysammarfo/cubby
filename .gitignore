@@ -3,3 +3,6 @@ node_modules/
 .env*
 .secrets/
 out/
+.vercel/
+web/dist/
+*.wif

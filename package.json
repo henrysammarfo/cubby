@@ -4,9 +4,12 @@
   "description": "Cubby: passkey (WebAuthn P-256) signing gate for Bitcoin Cash covenants",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vitest run",
-    "size": "tsx scripts/report.ts"
+    "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "build": "tsc --noEmit && vitest run && vite build --config web/vite.config.ts",
+    "build:web": "vite build --config web/vite.config.ts",
+    "dev": "vite --config web/vite.config.ts",
+    "size": "tsx scripts/report.ts",
+    "chipnet-e2e": "tsx scripts/chipnet-e2e.ts"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -14,12 +17,18 @@
   "dependencies": {
     "@bitauth/libauth": "3.1.0-next.8",
     "@noble/curves": "2.4.0",
-    "@noble/hashes": "2.4.0"
+    "@noble/hashes": "2.4.0",
+    "@wizardconnect/core": "0.2.11",
+    "@wizardconnect/dapp": "0.2.8",
+    "buffer": "6.0.3",
+    "qrcode": "1.5.4"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
+    "@types/qrcode": "1.5.6",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
+    "vite": "8.3.8",
     "vitest": "5.1.0"
   },
   "private": true
