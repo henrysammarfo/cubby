@@ -31,6 +31,9 @@ export const ROUTES: { name: string; path: string }[] = [
   { name: 'how', path: '/how-it-works' },
   { name: 'terms', path: '/terms' },
   { name: 'privacy', path: '/privacy' },
+  { name: 'recover', path: '/recover' },
+  { name: 'backup', path: '/settings/backup' },
+  { name: 'backup-demo', path: '/settings/backup?demo=1' },
 ];
 
 type Issue = { route: string; kind: string; message: string };
@@ -146,7 +149,11 @@ const main = async (): Promise<void> => {
     const chrome = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', '--disable-gpu'] });
     issues.push(...(await walk(chrome, 'chromium', 390, 844)));
     await chrome.close();
-    const safari = await webkit.launch();
+    const webkitLaunch =
+      BASE.startsWith('https:')
+        ? { env: { ...process.env } }
+        : {};
+    const safari = await webkit.launch(webkitLaunch);
     issues.push(...(await walk(safari, 'webkit', 390, 844)));
     await safari.close();
   } finally {
