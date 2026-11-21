@@ -2,7 +2,7 @@ import { defineConfig, type ViteDevServer } from 'vite';
 import { resolve } from 'node:path';
 import { getNetwork } from '../src/network.ts';
 import { utxosFromWatchtower } from '../src/chain.ts';
-import { getHistories, getHistoryEntries } from '../api/_electrum.ts';
+import { getHistories, getHistoryEntries } from '../lib/server/electrum.ts';
 import { describeAddressTransactions } from '../src/chain.ts';
 
 const apiPlugin = () => ({

@@ -1,7 +1,7 @@
 import net from 'node:net';
 import tls from 'node:tls';
 import { sha256 } from '@bitauth/libauth';
-import { addressToLocking } from '../src/address.js';
+import { addressToLocking } from '../../src/address.js';
 
 export const SERVERS: Record<string, Array<{ host: string; port: number }>> = {
   chipnet: [

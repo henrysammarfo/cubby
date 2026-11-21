@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNetwork } from '@/src/network';
-import { getHistories } from '@/api/_electrum';
+import { getHistories } from '@/lib/server/electrum';
 
 export const dynamic = 'force-dynamic';
 

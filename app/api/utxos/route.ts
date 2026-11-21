@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { utxosFromWatchtower } from '@/src/chain';
 import { getNetwork } from '@/src/network';
-import { listUnspent } from '@/api/_electrum';
+import { listUnspent } from '@/lib/server/electrum';
 
 export const dynamic = 'force-dynamic';
 
