@@ -45,8 +45,8 @@ export const buildUnsignedVaultSpend = (
     }
     outputs.push({ lockingBytecode: changeLocking, valueSatoshis: change });
   } else if (change > 0n) {
-    // Leftover below the smallest output is added to the fee instead of being sent back.
-    outputs[0] = { lockingBytecode: destinationLocking, valueSatoshis: send };
+    // Sub-dust leftover is added to the destination so the fee stays exactly the intended fee.
+    outputs[0] = { lockingBytecode: destinationLocking, valueSatoshis: send + change };
   }
   return {
     version: 2,
@@ -98,3 +98,7 @@ export const attachPasskeyUnlock = (
   const encoded = encodeTransactionBch(tx);
   return { tx, hex: Buffer.from(encoded).toString('hex'), txid: hashTransaction(encoded), unlockingBytes: unlocking.length };
 };
+
+/** Units taken as the network fee (input minus all outputs). Must equal the intended fee. */
+export const feePaidOnSpend = (vaultSats: bigint, tx: TransactionBch): bigint =>
+  vaultSats - tx.outputs.reduce((sum, output) => sum + output.valueSatoshis, 0n);

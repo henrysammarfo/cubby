@@ -13,7 +13,8 @@
     "chipnet-e2e": "tsx scripts/chipnet-e2e.ts",
     "ui-smoke": "tsx scripts/ui-smoke.ts",
     "bounties:allowance": "tsx scripts/bounties/allowance-chipnet.ts",
-    "bounties:identity": "tsx scripts/bounties/identity-chipnet.ts"
+    "bounties:identity": "tsx scripts/bounties/identity-chipnet.ts",
+    "lint": "eslint . --max-warnings=0"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -35,8 +36,11 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@types/node": "26.6.6",
     "@types/qrcode": "1.5.6",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
     "playwright": "^1.65.1",
     "tsx": "4.23.15",
     "typescript": "^6.0.3",
@@ -44,5 +48,8 @@
     "vitest": "5.1.0",
     "ws": "^8.23.0"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "postcss": "8.5.33"
+  }
 }

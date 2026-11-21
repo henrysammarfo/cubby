@@ -74,3 +74,23 @@ Legend: **true**, **partial**, **false**, **cut**.
 ## Front end structure (same day, later pass)
 
 The public site is now a Next.js 15 app in `app/`, still on https://cubby-liart-six.vercel.app. Protocol behaviour and the claims above are unchanged. Demo screens that show the chipnet proof payments are labelled “Demo box”. Fiat amounts and the coin chart appear only when CoinGecko returns a price.
+
+## Hardening pass (21 November 2026, later, Accra, UTC+0)
+
+Henry asked for a full safety pass (t299u). Findings and fixes:
+
+| Area | Finding | Fix | Test |
+|---|---|---|---|
+| Caps and dust | Main-network cap (9,000) and dust (546) were already enforced in `assertSpendAllowed`. | Kept. Added explicit dust and exact-fee tests. | `test/hardening.test.ts` |
+| Fee overpay | A leftover below 546 units was left out of the outputs, so it was burned as extra fee on top of the intended 11,000 unit fee. | `buildUnsignedVaultSpend` now adds that leftover to the destination. Change of 546 or more still returns to the box. The fee is always the intended 11,000 units. | `test/hardening.test.ts` |
+| Address validation | Prefix and checksum checks already existed (`assertNetworkAddress`). The Send screen still said “test network address” on the main network. The fuller Send address UI stays with the `judge-fixes` branch. | Kept the existing check (accepts Henry’s plain and token-aware Paytaca addresses, rejects the other network and garbage). Placeholder now follows the selected network. | `test/hardening.test.ts` |
+| Double broadcast | Two confirm taps, or a retry of the same signed hex, could start two broadcasts. | Client: a send lock (`sending` ref) plus an in-memory cache in `broadcastTransaction` so the same hex is only sent once. Server: `/api/broadcast` returns the recent txid if the same hex is seen again within 10 minutes. | `test/hardening.test.ts` |
+| Passkey origin | The box was already bound to `location.hostname` and the rpId hash in the redeem script. | Exported `assertVaultOrigin` and still refuse a box created on another host (including preview URLs). | `test/hardening.test.ts` |
+| Client bundle secrets | Needed a post-build scan of `.next`. | Scan is part of this pass (see below). No private keys, WIF, nsec, or `.env` values were found in the client output. | Build-time ripgrep of `.next` |
+| Security headers | `next.config.mjs` set no CSP, HSTS, frame policy, Referrer-Policy, or Permissions-Policy. | Added `lib/security-headers.mjs`: CSP (including WizardConnect relay and explorers), HSTS, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy` that allows `publickey-credentials-get` and `publickey-credentials-create` on this origin only. | `test/hardening.test.ts`; live `curl -I` after deploy |
+| `/api/broadcast` abuse | Only a short hex regex existed. No size cap, odd-length check, origin allow-list, or rate limit. | `lib/server/broadcast-guard.ts`: even hex, 20 to 30,000 hex characters, 64 KB body cap, live-origin / localhost allow-list, 5 requests per IP per minute, and a short-lived txid cache. | `test/hardening.test.ts` |
+| npm audit (app) | `next@15.5.29` pulled `postcss@8.4.31` (high). `npm audit fix --force` would have jumped to Next 16, a breaking change. | `overrides` pins `postcss` to 8.5.33, the patched release, without changing Next. | `npm audit` after install |
+| npm audit (XO package) | High/critical issues live under `sqlite3` / `node-gyp` / `tar` and `@xo-cash/engine` (indexeddbshim / minimatch). They are not shipped in the Vercel app. `npm audit fix --force` would have installed a breaking `@xo-cash/state`. | Left as known toolchain risk in the XO bounty folder. Do not `--force` that upgrade. | XO tests still pass (6) |
+| Lint | The app had no eslint script or config. | Added `eslint.config.mjs` (`next/core-web-vitals`) and `npm run lint`. | `npm run lint` |
+
+Nothing on the main network was spent in this pass. The Telegram check-in and the DoraHacks submit were not touched.

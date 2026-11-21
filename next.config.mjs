@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { SECURITY_HEADERS } from './lib/security-headers.mjs';
 
 const require = createRequire(import.meta.url);
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -10,6 +11,9 @@ const nextConfig = {
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  async headers() {
+    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+  },
   webpack: (config, { webpack }) => {
     config.resolve.alias = {
       ...config.resolve.alias,

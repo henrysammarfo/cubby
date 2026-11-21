@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, X } from 'lucide-react';
 import { AppShell, BackNav, Sheet, useDemoSuffix } from '@/ui/kit';
@@ -40,6 +40,7 @@ function SendInner() {
   const [pick, setPick] = useState(shot.get('sheet') === 'assets');
   const [confirm, setConfirm] = useState(shot.get('sheet') === 'confirm');
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
   const fee = s.network.vaultSpendFeeSats;
   const max = sats !== null && sats > fee ? sats - fee : 0n;
   const parsed = useMemo(() => parseBch(amount), [amount]);
@@ -64,6 +65,8 @@ function SendInner() {
   };
 
   const onSend = async () => {
+    if (sending.current) return;
+    sending.current = true;
     setErr(null); setBusy(true);
     try {
       if (s.demo && !s.vault) {
@@ -87,7 +90,7 @@ function SendInner() {
       router.push(`/send/success?txid=${txid}&amount=${String(parsed)}${suffix ? '&demo=1' : ''}`);
     } catch (e) {
       setErr(explainWebAuthnError(e, 'approve'));
-    } finally { setBusy(false); }
+    } finally { sending.current = false; setBusy(false); }
   };
 
   return (
@@ -124,7 +127,7 @@ function SendInner() {
         <div className="send-to">
           <label htmlFor="dest">To</label>
           <div className="field">
-            <input id="dest" value={dest} onChange={(e) => setDest(e.target.value)} placeholder="Paste a test network address" autoComplete="off" autoCapitalize="off" spellCheck={false} />
+            <input id="dest" value={dest} onChange={(e) => setDest(e.target.value)} placeholder={s.networkId === "mainnet" ? "Paste a main network address" : "Paste a test network address"} autoComplete="off" autoCapitalize="off" spellCheck={false} />
           </div>
         </div>
         <div className="amt-card">

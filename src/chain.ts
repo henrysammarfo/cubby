@@ -141,10 +141,28 @@ export const getWalletBalances = async (network: Network, address: string): Prom
   return { satoshis, pusdCents };
 };
 
+const broadcastCache = new Map<string, Promise<string>>();
+
+const broadcastKey = (network: Network, txHex: string): string => `${network.id}:${txHex.toLowerCase()}`;
+
+/** Broadcast a signed transaction. A second call with the same hex reuses the first attempt. */
 export const broadcastTransaction = async (network: Network, txHex: string): Promise<string> => {
   if (!network.allowBroadcast) {
     throw new Error('Broadcasting on the main network is off until Henry approves the funding address and amount.');
   }
+  const key = broadcastKey(network, txHex);
+  const existing = broadcastCache.get(key);
+  if (existing) return existing;
+  const work = broadcastTransactionUncached(network, txHex);
+  broadcastCache.set(key, work);
+  return work;
+};
+
+export const resetBroadcastCache = (): void => {
+  broadcastCache.clear();
+};
+
+const broadcastTransactionUncached = async (network: Network, txHex: string): Promise<string> => {
   try {
     const body = await jsonOrThrow(
       await fetch(`${network.watchtowerBase}/broadcast/`, {

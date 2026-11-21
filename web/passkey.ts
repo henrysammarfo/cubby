@@ -160,11 +160,15 @@ export const createDeviceLock = async (network: Network): Promise<StoredVault> =
   return stored;
 };
 
-export const requestAssertion = async (stored: StoredVault, challenge: Uint8Array): Promise<Assertion> => {
-  await assertPasskeyAvailable();
-  if (stored.rpId !== location.hostname) {
+export const assertVaultOrigin = (stored: Pick<StoredVault, 'rpId'>, hostname: string): void => {
+  if (stored.rpId !== hostname) {
     throw new Error('This box was created on a different website address. Open the original site, or create a new box here.');
   }
+};
+
+export const requestAssertion = async (stored: StoredVault, challenge: Uint8Array): Promise<Assertion> => {
+  await assertPasskeyAvailable();
+  assertVaultOrigin(stored, location.hostname);
   let credential: PublicKeyCredential | null;
   try {
     credential = (await withTimeout(

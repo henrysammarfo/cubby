@@ -47,7 +47,7 @@ export function useBalances(address: string | null, networkId: string) {
     void load();
     const t = setInterval(() => void load(), 8000);
     return () => { cancelled = true; clearInterval(t); };
-  }, [address, networkId]);
+  }, [address, networkId, demoKnown]);
   return { sats, error };
 }
 
