@@ -41,8 +41,8 @@ Was: "Yes, Builder can start the signing gate test now alongside the design, bac
 - Pre-existing work must list old and new demo and repo. Cubby is new (repo created 17 Nov 2026); there is no earlier demo or repo.
 
 ## Public payout address
-EMBER 2026 CashTokens address shown in the banner: `bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj`.
-The matching private key is only in the gitignored `.secrets/` file. Henry must secure that key or replace the banner address with one he already controls. Do not print or commit the key.
+EMBER 2026 CashTokens address shown in the banner: `bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj`.
+Henry supplied this Paytaca token-aware address on 21 November 2026, Accra (UTC+0). The matching plain p2pkh form is not used on the banner. Do not print or commit keys.
 
 ## Chipnet e2e (21 Nov 2026, Accra)
 Completed 21 Nov 2026, Accra. Googol faucet 0f44dde17217258290fd77d4a926cde5d654503d49080fac811cfeeaa34bb149 funded `bchtest:qpl93ln6r425c60fqhc25sf4sh59fmwwrufym39tj0`. Vault deposit 8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7, passkey spend 2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993 (9,573 unlocking bytes, 9,660 byte transaction). Verified on chipnet.bchexplorer.info and chipnet.imaginary.cash (mempool at the time).

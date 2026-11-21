@@ -1,5 +1,5 @@
 /** Public BLAZE banner constants. No secrets. */
-export const EMBER_TOKEN_ADDRESS = 'bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj';
+export const EMBER_TOKEN_ADDRESS = 'bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj';
 /** Cubby intro on this site. Swap to a Google Slides "anyone with the link" URL when one is published. */
 export const DECK_HREF = '/deck';
 /** Official blank Widget Factory template. Kept so a Google Slides URL can replace DECK_HREF later. */

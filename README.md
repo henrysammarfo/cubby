@@ -10,9 +10,9 @@ Cubby lets a phone lock (face, fingerprint, or Windows Hello) approve a Bitcoin 
 
 - Widget Factory template: https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing
 - Repository: https://github.com/henrysammarfo/cubby
-- Community Choice (EMBER 2026) CashTokens address: `bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj`
+- Community Choice (EMBER 2026) CashTokens address: `bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj`
 
-Prize money is paid to the CashTokens address shown in the demo banner. That address was generated into a local gitignored key file. Henry must move the key to a wallet he controls, or replace the banner with an address he already owns, before the repo is public.
+Prize money is paid to the CashTokens address shown in the demo banner. That address is Henry’s own Paytaca token-aware address, supplied 21 November 2026, Accra (UTC+0).
 
 ## Try the live demo
 
