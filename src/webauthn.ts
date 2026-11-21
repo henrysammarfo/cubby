@@ -2,8 +2,68 @@
 import { utf8ToBin } from '@bitauth/libauth';
 import { CLIENT_DATA_PREFIX } from './covenant.js';
 
-export const base64url = (data: Uint8Array): string => Buffer.from(data).toString('base64url');
-export const fromBase64url = (s: string): Uint8Array => new Uint8Array(Buffer.from(s, 'base64url'));
+/** RFC 4648 section 5 alphabet. Encoding never emits padding; decoding accepts it. */
+const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+const sextetChar = (n: number): string => {
+  const ch = B64URL[n & 63];
+  if (ch === undefined) throw new Error('base64url: invalid sextet');
+  return ch;
+};
+
+const B64URL_TABLE = (() => {
+  const table = new Int16Array(256).fill(-1);
+  for (let i = 0; i < B64URL.length; i++) table[B64URL.charCodeAt(i)] = i;
+  return table;
+})();
+
+/** Encode bytes as unpadded base64url. Works in Node and the browser (no Buffer encodings). */
+export const base64url = (data: Uint8Array): string => {
+  let out = '';
+  const len = data.length;
+  for (let i = 0; i < len; i += 3) {
+    const a = data[i] ?? 0;
+    const b = i + 1 < len ? (data[i + 1] ?? 0) : 0;
+    const c = i + 2 < len ? (data[i + 2] ?? 0) : 0;
+    const n = (a << 16) | (b << 8) | c;
+    const remain = len - i;
+    out += sextetChar(n >> 18);
+    out += sextetChar(n >> 12);
+    if (remain > 1) out += sextetChar(n >> 6);
+    if (remain > 2) out += sextetChar(n);
+  }
+  return out;
+};
+
+/** Decode unpadded or padded base64url. Rejects invalid length and alphabet. */
+export const fromBase64url = (s: string): Uint8Array => {
+  const input = s.replace(/=+$/, '');
+  if (input.length === 0) return new Uint8Array(0);
+  if (input.length % 4 === 1) throw new Error('Invalid base64url');
+  const out = new Uint8Array(Math.floor((input.length * 3) / 4));
+  let o = 0;
+  for (let i = 0; i < input.length; i += 4) {
+    const valueAt = (idx: number, required: boolean): number => {
+      if (idx >= input.length) {
+        if (required) throw new Error('Invalid base64url');
+        return 0;
+      }
+      const v = B64URL_TABLE[input.charCodeAt(idx)] ?? -1;
+      if (v < 0) throw new Error('Invalid base64url');
+      return v;
+    };
+    const n =
+      (valueAt(i, true) << 18) |
+      (valueAt(i + 1, true) << 12) |
+      (valueAt(i + 2, false) << 6) |
+      valueAt(i + 3, false);
+    out[o++] = (n >> 16) & 255;
+    if (i + 2 < input.length) out[o++] = (n >> 8) & 255;
+    if (i + 3 < input.length) out[o++] = n & 255;
+  }
+  return out;
+};
+
 
 export interface Assertion {
   /** Raw authenticatorData bytes. */

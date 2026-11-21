@@ -2,6 +2,7 @@ import { sha256, utf8ToBin } from '@bitauth/libauth';
 import { buildVault, type Vault, type VaultParams } from '../src/covenant.js';
 import {
   assertAuthenticatorFlags,
+  base64url,
   decodeUncompressed,
   fromBase64url,
   publicKeyFromAttestationObject,
@@ -231,9 +232,4 @@ export const requestAssertion = async (stored: StoredVault, challenge: Uint8Arra
   return assertion;
 };
 
-const bufferToB64url = (data: ArrayBuffer): string => {
-  const bytes = new Uint8Array(data);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
+const bufferToB64url = (data: ArrayBuffer): string => base64url(new Uint8Array(data));
