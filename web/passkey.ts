@@ -9,8 +9,8 @@ import {
   toArrayBuffer,
   type Assertion,
 } from '../src/webauthn.js';
-import { lockingToAddress } from '../src/address.js';
-import type { Network } from '../src/network.js';
+import { addressToLocking, lockingToAddress } from '../src/address.js';
+import { getNetwork, type Network } from '../src/network.js';
 
 const STORE = 'cubby-vault-v1';
 const CREATE_TIMEOUT_MS = 60_000;
@@ -23,6 +23,13 @@ export interface StoredVault {
   readonly rpId: string;
   readonly address: string;
   readonly network: string;
+  /** Optional "never stuck" backup wallet (docs/BACKUP-RECOVERY.md). Changes the box address. */
+  readonly backup?: StoredBackup;
+}
+
+export interface StoredBackup {
+  readonly address: string;
+  readonly delayBlocks: number;
 }
 
 const rpId = (): string => location.hostname;
@@ -83,7 +90,15 @@ export const loadVault = (): StoredVault | null => {
   try {
     const parsed = JSON.parse(raw) as StoredVault;
     if (!parsed.credentialId || !parsed.publicKeyX || !parsed.publicKeyY || !parsed.rpId || !parsed.address) return null;
-    return parsed;
+    if (!parsed.backup) return parsed;
+    // With a backup the address is derived from the script, never trusted from storage.
+    const network = getNetwork(parsed.network);
+    try {
+      return { ...parsed, address: lockingToAddress(vaultFromStored(parsed).vault.lockingBytecode, network) };
+    } catch {
+      const { backup: _bad, ...rest } = parsed;
+      return { ...rest, address: lockingToAddress(vaultFromStored(rest).vault.lockingBytecode, network) };
+    }
   } catch {
     return null;
   }
@@ -97,8 +112,24 @@ export const vaultFromStored = (stored: StoredVault): { params: VaultParams; vau
   const params: VaultParams = {
     publicKey: { x: BigInt(`0x${stored.publicKeyX}`), y: BigInt(`0x${stored.publicKeyY}`) },
     rpIdHash: sha256.hash(utf8ToBin(stored.rpId)),
+    ...(stored.backup
+      ? { backup: { lockingBytecode: addressToLocking(stored.backup.address), delayBlocks: stored.backup.delayBlocks } }
+      : {}),
   };
   return { params, vault: buildVault(params) };
+};
+
+/**
+ * Turn the backup on, change it, or turn it off. The box gets a new address,
+ * so the caller must only do this while the box is empty.
+ */
+export const setVaultBackup = (stored: StoredVault, backup: StoredBackup | null, network: Network): StoredVault => {
+  const { backup: _old, ...rest } = stored;
+  const next: StoredVault = backup ? { ...rest, backup } : rest;
+  const { vault } = vaultFromStored(next);
+  const updated: StoredVault = { ...next, address: lockingToAddress(vault.lockingBytecode, network) };
+  saveVault(updated);
+  return updated;
 };
 
 const pointFromAttestation = (attestation: AuthenticatorAttestationResponse): { x: bigint; y: bigint } => {

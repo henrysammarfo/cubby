@@ -2,11 +2,12 @@ import {
   createVirtualMachineBch2026,
   hexToBin,
   sha256,
+  stackItemIsTruthy,
   utf8ToBin,
   type Output,
   type TransactionBch,
 } from '@bitauth/libauth';
-import { buildVault, type Vault, type VaultParams } from '../src/covenant.js';
+import { buildVault, type BackupParams, type Vault, type VaultParams } from '../src/covenant.js';
 import { intentHash } from '../src/intent.js';
 import { createSoftPasskey, type AssertOptions, type SoftPasskey } from '../src/softAuthenticator.js';
 import { unlockFromAssertion } from '../src/unlock.js';
@@ -24,9 +25,9 @@ export interface Fixture {
 
 const TOKEN_CATEGORY = hexToBin('2469acc5afa4b10cb5b5c04afb89c3a3ffd61c5da9c01e26d00951cae2a02544');
 
-export const makeFixture = async (): Promise<Fixture> => {
+export const makeFixture = async (backup?: BackupParams): Promise<Fixture> => {
   const passkey = await createSoftPasskey(RP_ID);
-  const params: VaultParams = { publicKey: passkey.publicKey, rpIdHash: sha256.hash(utf8ToBin(RP_ID)) };
+  const params: VaultParams = { publicKey: passkey.publicKey, rpIdHash: sha256.hash(utf8ToBin(RP_ID)), ...(backup ? { backup } : {}) };
   const vault = buildVault(params);
   const sourceOutputs: Output[] = [
     {
@@ -75,5 +76,7 @@ export const status = (tx: TransactionBch, sourceOutputs: Output[], inputIndex =
   const st = evaluate(tx, sourceOutputs, inputIndex);
   if (st.error !== undefined) return `fail ${st.error}`;
   if (st.stack.length !== 1) return `fail stack depth ${st.stack.length}`;
+  // A clean stack holding a false item is a failed spend, not a pass.
+  if (!stackItemIsTruthy(st.stack[0]!)) return 'fail result is false';
   return `pass ${st.metrics.operationCost}/${st.metrics.maximumOperationCost}`;
 };

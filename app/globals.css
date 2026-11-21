@@ -316,3 +316,12 @@ html .nav{padding-top:calc(var(--sat) + .35rem)}
 .film-poster img{display:block;width:100%;height:auto;max-height:36rem;object-fit:cover;opacity:.92}
 .film-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.25rem;border-radius:999px;background:#fff;color:#0B0B0F;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.28)}
 .film-video{display:block;width:100%;height:auto;max-height:36rem;background:#0B0B0F}
+
+/* Backup wallet */
+.backup-hero{text-align:center;padding:.5rem .5rem 1rem}
+.backup-hero .mark{width:3.4rem;height:3.4rem;border-radius:1.1rem;background:var(--surface-2);display:inline-grid;place-items:center;margin-bottom:.6rem}
+.backup-hero h1{font-size:1.45rem;font-weight:750;letter-spacing:-.01em;margin:0 0 .4rem}
+.backup-hero p{color:var(--ink-2);font-size:.95rem;line-height:1.45;margin:0 auto;max-width:22rem}
+.backup .chips{flex-wrap:wrap;overflow:visible}
+.stack-btns{display:flex;flex-direction:column;gap:.6rem;margin-top:.75rem}
+.note-box{width:100%;border:1px solid var(--sep);border-radius:1rem;padding:.8rem 1rem;font:inherit;font-size:.9rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:var(--ink);resize:vertical}
