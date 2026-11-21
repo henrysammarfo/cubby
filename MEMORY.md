@@ -4,8 +4,8 @@
 Henry confirmed he registered on DoraHacks before 13 Nov, completed roll call, and lifted the 17 Nov freeze to full scope for the BLAZE submission.
 - Build a live demo (create or fund a vault, spend with a device passkey), WizardConnect, and a chipnet end to end run with real transaction IDs.
 - Deploy to a free Vercel origin. Lock the passkey relying party to the deploy origin. Do not buy a domain.
-- Commit and push to henrysammarfo/cubby is allowed. Never force push. Never commit secrets. Do not make the repo public until Henry says so.
-- Do not spend real mainnet BCH until Henry approves the funding address and the exact number of satoshis.
+- Commit and push to henrysammarfo/cubby is allowed. Never force push. Never commit secrets. Henry approved making the repo public on 21 November 2026, Accra (UTC+0). It is public at https://github.com/henrysammarfo/cubby.
+- Henry approved main-network sending the same day: he will buy and send the Bitcoin Cash himself. Caps stay at 20,000 units total and 9,000 units per send. Do not spend from this box; there are no coins here. A real mainnet spend has not been completed yet.
 - Credit Sahid Miller / signatures.cash as prior art. Copy nothing from his unlicensed repo. Do not use the name Pocket.
 - Commit as henrysammarfo <jasonneil4040@gmail.com>.
 - UI: keep it minimal and easy to restyle (design tokens, no final branding or logo) until Telegram research decides the look, logo, and mascot.
@@ -17,7 +17,7 @@ Was: "Yes, Builder can start the signing gate test now alongside the design, bac
 - One-input verifier (no helper UTXOs): half-size scalars + hint-checked affine steps. Keeps the plan's approach (introspection intent hash, WebAuthn wrapper in script, clean stack, padding) and removes plan T3's helper inputs.
 - P2SH32 (redeem script about 1 KB cannot fit the 201-byte P2S locking limit).
 - rpIdHash is fixed per vault, so a vault is bound to one passkey domain (the live demo origin).
-- Default network is chipnet. Mainnet is a config flip, but broadcasting a mainnet spend stays off until Henry approves the address and amount.
+- Default network is chipnet. Main-network sending is on (`MAINNET_SEND_ENABLED = true`), with the 20,000 unit total and 9,000 unit per-spend cap still in force. Nothing has been spent on the main network yet.
 
 ## hack-team-standards checklist
 - [x] Read the plan sections 2.2, 6, 6.1 and the r6 spikes
@@ -27,7 +27,7 @@ Was: "Yes, Builder can start the signing gate test now alongside the design, bac
 - [x] Credit line for Sahid Miller, no copied code
 - [ ] Real device assertions (iPhone, Android, Windows 11)
 - [x] Chipnet spend (21 Nov 2026, Accra): fund 8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7, spend 2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993
-- [ ] Mainnet spend (needs Henry's approval of the funding address and exact sats)
+- [ ] Mainnet spend (path is on and capped; Henry will fund it; no coins have been spent yet)
 
 
 ## Jeremy / Telegram rules (must be in the app)
@@ -49,4 +49,4 @@ Completed 21 Nov 2026, Accra. Googol faucet 0f44dde17217258290fd77d4a926cde5d654
 
 ## Live demo (21 Nov 2026, Accra)
 Public Vercel production URL: https://cubby-liart-six.vercel.app
-Project: teamtitanlink/cubby (Hobby). Vercel SSO/deployment protection was disabled so judges can open it without a login. Repo is still private. No chipnet spend txids yet.
+Project: teamtitanlink/cubby (Hobby). Vercel SSO/deployment protection was disabled so judges can open it without a login. Repo is public: https://github.com/henrysammarfo/cubby. Chipnet proof: deposit 8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7, spend 2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993.

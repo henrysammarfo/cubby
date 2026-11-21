@@ -2,9 +2,9 @@
 
 These limits apply now and after the deadline, until the code or the approval policy changes.
 
-## Mainnet sending is off
+## Mainnet sending is on, and capped
 
-`src/network.ts` sets `allowBroadcast: false` on the main network. `src/chain.ts` `broadcastTransaction` throws if that flag is off. Do not spend mainnet coins until Henry approves the funding address and the exact number of satoshis (the planned amount is 20,000 sats / 0.0002 BCH, with a fee of 11,000 sats).
+`src/network.ts` sets `MAINNET_SEND_ENABLED = true`, so `NETWORKS.mainnet.allowBroadcast` is true. Henry approved this on 21 November 2026, Accra (UTC+0), and will fund the box himself. A main-network send is capped at 9,000 sats, and the amount plus the 11,000 sat fee must stay within the approved 20,000 sat total. `assertSpendAllowed` and `broadcastTransaction` still refuse a send if the flag is turned back off. Nothing has been spent on the main network yet. Follow `docs/MAINNET-RUNBOOK.md`.
 
 ## The box is bound to one website
 

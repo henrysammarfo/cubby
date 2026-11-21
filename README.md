@@ -1,6 +1,6 @@
 # Cubby
 
-**Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (34 unit tests). The live demo is deployed. A real chipnet vault deposit and passkey spend are on the test network (see links below). The repository is still private. No mainnet coins have been spent.
+**Status: public demo for BCH BLAZE 2026.** The signing gate is tested (`npm test`). The live demo is deployed. The repository is public. A real test-network vault deposit and passkey spend are on chipnet (see links below). Main-network sending is on, with a 9,000 unit per-spend cap and a 20,000 unit approved total. No mainnet coins have been spent yet.
 
 Cubby was built fresh during BLAZE. The first commit is 17 November 2026 ([18c652e](https://github.com/henrysammarfo/cubby/commit/18c652e)). There is no earlier demo and no earlier repository, so judges do not need a 14 November starting-state demo link.
 
@@ -8,7 +8,7 @@ Cubby lets a phone lock (face, fingerprint, or Windows Hello) approve a Bitcoin 
 
 ## Banner (required for BLAZE)
 
-- Widget Factory template: https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing
+- Presentation (8-slide Cubby intro): https://cubby-liart-six.vercel.app/deck
 - Repository: https://github.com/henrysammarfo/cubby
 - Community Choice (EMBER 2026) CashTokens address: `bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj`
 
@@ -19,13 +19,13 @@ Prize money is paid to the CashTokens address shown in the demo banner. That add
 The live demo is at https://cubby-liart-six.vercel.app. Open it on a phone or laptop with a screen lock. The passkey is bound to this website address, so use this HTTPS origin (not a preview URL) when you create a phone lock.
 
 1. Stay on the test network (the default). Those coins have no value.
-2. Optionally connect a Bitcoin Cash wallet with WizardConnect. In Paytaca, open Apps, then WizardConnect, then Scan (the usual Scan button does not connect). If it hangs, tap New code on the demo for a fresh code. Selene and Cashonize can scan or open the connection link. Stay on the test network, or tick Use the main network in the menu (sending on the main network stays off).
+2. Optionally connect a Bitcoin Cash wallet with WizardConnect. In Paytaca, open Apps, then WizardConnect, then Scan (the usual Scan button does not connect). If it hangs, tap New code on the demo for a fresh code. Selene and Cashonize can scan or open the connection link. Stay on the test network, or turn on Use the main network in Settings (a main-network send is capped at 9 000 units, and a 20 000 unit deposit covers the fee).
 3. Create your phone lock. It is tied to this website address.
 4. Send at least 20 000 test units to the box address (or paste the payment id after you send). The on-chain check is a large transaction, about 10 KB, and the fee is 1 unit per byte, so a smaller deposit cannot cover the send.
 5. Send the coins back with your face or fingerprint (see docs/FACE-ID-TEST.md for the iPhone Safari path on this origin). A real iPhone Face ID spend on the live site has not been completed yet.
 6. Open the payment on the explorer.
 
-Main network sending stays off until Henry approves the funding address and the exact number of satoshis (20 000 satoshis, which is 0.0002 BCH, is the planned amount).
+Main-network sending is on. Henry will fund a box himself with 20 000 satoshis (0.0002 BCH). A send is capped at 9 000 units so that deposit covers the 11 000 unit fee. Follow docs/MAINNET-RUNBOOK.md. Nothing has been spent on the main network yet.
 
 
 ## Completed test network spend

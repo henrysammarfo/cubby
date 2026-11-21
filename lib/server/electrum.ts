@@ -9,8 +9,8 @@ export const SERVERS: Record<string, Array<{ host: string; port: number }>> = {
     { host: 'chipnet.bch.ninja', port: 50004 },
   ],
   mainnet: [
-    { host: 'bch.imaginary.cash', port: 50004 },
-    { host: 'electrum.imaginary.cash', port: 50004 },
+    { host: 'bch.imaginary.cash', port: 50002 },
+    { host: 'electrum.imaginary.cash', port: 50002 },
   ],
 };
 

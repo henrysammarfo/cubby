@@ -16,10 +16,10 @@ Cubby is entered on the **Mainnet track**. It does not enter the Media track. Sp
 | Live, clickable demo judges can open | **Met** | `app/page.tsx` and the box routes, deployed from this repo | https://cubby-liart-six.vercel.app |
 | WizardConnect integration | **Met** | `web/wizard.ts` (`startConnect`, `requestWalletSend`); `@wizardconnect/core` + `@wizardconnect/dapp`; relay `wss://relay.riften.net:443`. Disconnect watch: `src/wallet-link.ts`. Address scan in batches of 20: `src/wallet-scan.ts`. | Live Receive screen, “Or connect a wallet you already use”. |
 | Banner with presentation, source, and EMBER 2026 CashTokens address | **Partial** | Banner in `ui/Banner.tsx`, mounted from `app/layout.tsx`. Address `bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj` from `src/banner.ts`. | Visible on the live site. The banner presentation link is `/deck`, which serves the 8-slide Cubby intro PDF. |
-| Original work built during BLAZE (no minor tweak of an earlier product) | **Met** | First commit `18c652e` (17 Nov 2026) | https://github.com/henrysammarfo/cubby/commit/18c652e (repo still private until Henry flips it). |
+| Original work built during BLAZE (no minor tweak of an earlier product) | **Met** | First commit `18c652e` (17 Nov 2026) | https://github.com/henrysammarfo/cubby/commit/18c652e (repo is public). |
 | Confirm the team is real in the BLAZE Telegram | **Not met (draft only)** | n/a | `/workspace/bch/submission/TELEGRAM_CHECKIN.md` is unsent. |
 | At least one project representative attended a prep stream (roll call) | **Met (Henry)** | n/a | Henry confirmed roll call. |
-| At least one feature that sends a Bitcoin Cash **mainnet** transaction | **Not met** | Mainnet is a config flip (`src/network.ts`, `allowBroadcast: false`). The live send path is the same code, but broadcast stays off until Henry approves the funding address and exact sats. | Chipnet only: deposit `8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7`, spend `2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993`. No mainnet send. |
+| At least one feature that sends a Bitcoin Cash **mainnet** transaction | **Not met** | The send path, mainnet addresses, deposit detection, Face ID spend, explorer links, and the jar on mainnet are built. `MAINNET_SEND_ENABLED` is true, with a 9,000 unit per-spend cap and a 20,000 unit approved total. Henry will fund it. | Chipnet only so far: deposit `8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7`, spend `2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993`. No mainnet send has been broadcast yet. |
 
 ## Core CashVM 2026 features in the live spend path
 
@@ -44,4 +44,4 @@ See `docs/BOUNTY-PLAN.md`. In short:
 
 ## After the deadline
 
-Do not mark any unmet requirement as met without new proof. Mainnet sending stays off until Henry approves the address and amount. The Telegram check-in and DoraHacks submit stay unsent until he asks. The repo stays private until he asks. The Widget Factory deck is still to be built.
+Do not mark any unmet requirement as met without new proof. The repo is public. Main-network sending is on and capped; a real mainnet spend has not been completed yet. The Telegram check-in stays held until core features work for real. The DoraHacks BUIDL fields are in `/workspace/bch/submission/DORA_SUBMIT_FIELDS.md` and are not submitted from this step. The presentation is on `/deck`.

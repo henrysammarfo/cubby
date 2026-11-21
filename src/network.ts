@@ -25,12 +25,13 @@ export const RECOMMENDED_FUND_SATS = 20_000n;
 export const DUST_SATS = 546n;
 
 /**
- * Single switch for main-network sends. Leave false until Henry approves the
- * exact 20,000 sat funding (deposit plus fees) and we have the receive address.
- * Flip this to true, redeploy, then follow docs/MAINNET-RUNBOOK.md. Default OFF.
- * Do not spend on the main network while this is false.
+ * Single switch for main-network sends. Henry approved this on 21 November 2026
+ * (Accra, UTC+0): he will fund the box himself. The 20,000 unit total and the
+ * 9,000 unit per-spend cap stay in force, and the 11,000 unit fee guard stays
+ * on. Flip this back to false to freeze main-network sends. Follow
+ * docs/MAINNET-RUNBOOK.md. Nothing has been spent on the main network yet.
  */
-export const MAINNET_SEND_ENABLED = false;
+export const MAINNET_SEND_ENABLED = true;
 /** What Henry should send to the box, covering the deposit and the spend fee. */
 export const MAINNET_APPROVED_FUND_SATS = RECOMMENDED_FUND_SATS;
 /** Largest amount a main-network send may pay to the destination (20,000 minus the 11,000 unit fee). */

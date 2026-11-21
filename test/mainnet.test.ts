@@ -28,10 +28,10 @@ const utxo = {
   lockingBytecode: new Uint8Array(32),
 };
 
-describe('Main network readiness (flag defaults OFF, no spend)', () => {
-  it('leaves main-network broadcast off by default', () => {
-    expect(MAINNET_SEND_ENABLED).toBe(false);
-    expect(getNetwork('mainnet').allowBroadcast).toBe(false);
+describe('Main network readiness (flag on after approval, no spend in tests)', () => {
+  it('enables main-network broadcast after approval, and keeps the bitcoincash prefix', () => {
+    expect(MAINNET_SEND_ENABLED).toBe(true);
+    expect(getNetwork('mainnet').allowBroadcast).toBe(true);
     expect(getNetwork('mainnet').prefix).toBe('bitcoincash');
     expect(NETWORKS.chipnet.allowBroadcast).toBe(true);
   });
@@ -42,13 +42,17 @@ describe('Main network readiness (flag defaults OFF, no spend)', () => {
     expect(MAINNET_PER_SPEND_CAP_SATS).toBe(9_000n);
   });
 
-  it('refuses a main-network send while the flag is off', () => {
+  it('refuses a main-network send when the flag is passed as off', () => {
     expect(() => assertSpendAllowed(main, 9_000n, 20_000n, false)).toThrow(/stays off until it is approved/);
-    expect(() => assertSpendAllowed(main, 9_000n, 20_000n)).toThrow(/stays off until it is approved/);
   });
 
-  it('broadcastTransaction throws on mainnet before touching the network', async () => {
-    await expect(broadcastTransaction(main, '00')).rejects.toThrow(/off until/i);
+  it('allows a 9,000 unit main-network send when the flag is on, still inside the caps', () => {
+    expect(() => assertSpendAllowed(main, 9_000n, 20_000n)).not.toThrow();
+  });
+
+  it('broadcastTransaction throws when allowBroadcast is false, without touching the network', async () => {
+    const off = { ...main, allowBroadcast: false };
+    await expect(broadcastTransaction(off, '00')).rejects.toThrow(/off until/i);
   });
 
   it('when the flag is on, caps the destination amount at 9,000 units', () => {

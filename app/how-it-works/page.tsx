@@ -27,7 +27,7 @@ export default function HowItWorks() {
           <li><span className="n">03</span><div><b>Send with your face</b><span>Enter an amount and an address, review the payment, then approve with your face or fingerprint. You get a receipt with a payment id you can open on the explorer.</span></div></li>
         </ol>
         <h2>What you should know</h2>
-        <p>Test coins have no value. Sending on the main network stays off until it is approved.</p>
+        <p>Test coins have no value. On the main network a send is capped at 9 000 units, so a 20 000 unit deposit covers the fee.</p>
         <p>A send from the box needs about 20 000 test units so the network fee fits.</p>
         <p>A real iPhone Face ID spend on the live site has not been completed yet. The in-app path is ready. The checklist is in the project docs, in FACE-ID-TEST.md.</p>
         <h2>For reviewers</h2>

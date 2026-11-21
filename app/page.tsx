@@ -62,7 +62,7 @@ export default function Landing() {
 
       <section className="lp-band">
         <h2>Try it on the test network.</h2>
-        <p>Test coins have no value. Sending on the main network stays off until it is approved.</p>
+        <p>Test coins have no value. On the main network a send is capped at 9 000 units, so a 20 000 unit deposit covers the fee.</p>
         <div className="lp-ctas">
           <Link className="btn big" href="/wallet?demo=1">Try the demo</Link>
           <Link className="btn ghost big" href="/welcome">Open the app</Link>

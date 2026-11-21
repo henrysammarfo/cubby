@@ -51,7 +51,7 @@ function SettingsInner() {
           <div className="cell">
             <span className="lft">
               <span className="logo txt"><Globe size={18} aria-hidden /></span>
-              <span><span className="ct">Use the main network</span><span className="cs" style={{ display: 'block' }}>Sending on the main network stays off until it is approved. Test coins have no value.</span></span>
+              <span><span className="ct">Use the main network</span><span className="cs" style={{ display: 'block' }}>The main network is on. A send is capped at 9 000 units, so a 20 000 unit deposit covers the fee. Test-network coins have no value.</span></span>
             </span>
             <button className="toggle" type="button" role="switch" aria-checked={onMain} aria-label="Use the main network" onClick={() => s.setNetworkId(onMain ? 'chipnet' : 'mainnet')} />
           </div>

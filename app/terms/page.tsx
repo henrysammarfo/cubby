@@ -19,7 +19,7 @@ export default function Terms() {
         <h2>What this is</h2>
         <p>Cubby is a demonstration for BCH BLAZE 2026. The live site defaults to the test network. Test coins have no value.</p>
         <h2>The main network</h2>
-        <p>Sending on the main network stays off until the project owner approves a funding address and an exact amount. Do not send coins you cannot lose.</p>
+        <p>Sending on the main network is on, and each send is capped at 9 000 units against a 20 000 unit approved total. Do not send coins you cannot lose.</p>
         <h2>Your box and your device</h2>
         <p>A box is tied to one website address and to the phone lock on the device that created it. If you lose that device, this team cannot open the box for you. There is no recovery phrase.</p>
         <h2>No warranty</h2>

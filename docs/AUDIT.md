@@ -18,11 +18,11 @@ Legend: **true**, **partial**, **false**, **cut**.
 | “A box only your face can open.” | **partial** | The box opens when this device’s screen lock (Face ID, fingerprint, or Windows Hello) approves a WebAuthn assertion. The chain checks that assertion; it does not see a face. Kept as plain-language headline, with the one-line explanation under it. `app/page.tsx` landing. |
 | “Lock Bitcoin Cash with Face ID or your fingerprint. The chain checks the approval itself.” | **true** (wording tightened) | Redeem script rebuilds the payment intent and checks the WebAuthn wrapper, including UP and UV flags: `src/covenant.ts` lines 167–182, flag check at line 178. Not a claim that a real iPhone Face ID spend has already been completed. |
 | “Bitcoin Cash · test network ready” | **true** | Default network is chipnet, `src/network.ts` `DEFAULT_NETWORK`. |
-| “Test network coins have no value. Sending on the main network stays off until it is approved.” | **true** | `NETWORKS.mainnet.allowBroadcast` is `false` (`src/network.ts`). Broadcast throws if flipped without approval (`src/chain.ts` `broadcastTransaction`). |
+| “Test coins have no value. On the main network a send is capped at 9 000 units…” | **true** | `MAINNET_SEND_ENABLED` is `true` after Henry’s 21 November 2026 approval. Caps stay at 9,000 per send and 20,000 total (`src/network.ts`). No mainnet coins have been spent yet. |
 | “Works with Paytaca, Selene and Cashonize.” (meta description) | **true** for WizardConnect | Connect path uses `@wizardconnect/dapp` (`web/wizard.ts`). Paytaca path is Apps → WizardConnect → Scan, documented on the Receive screen. Zapit and unverified wallets are not claimed. |
 | “Built fresh during BLAZE, first commit 17 Nov” linking `18c652e` | **true** | `git log --reverse`: `18c652e` 17 Nov 2026 17:37 UTC, “S1 signing gate…”. |
 | Banner EMBER address `bitcoincash:zq7mt4punl9enxeznfrar0xhl6y0p5y5jg3pst20qj` | **true** | Same address in `src/banner.ts`, the live banner, the deck, and the BUIDL draft. Henry supplied this Paytaca token-aware address on 21 November 2026, Accra (UTC+0). |
-| Widget Factory intro link | **partial** | The link is the official template. The project deck is **not built yet**. The banner still points at the official template so judges have the required slot. Honest: this is not “our finished deck”. |
+| Widget Factory intro link | **true** | The banner and Settings link to `/deck`, which serves the 8-slide Cubby intro PDF. |
 | “A real iPhone Face ID check has not been completed yet.” (Box details) | **true** | No production-origin iPhone assertion has been recorded. The chipnet proof spend used a software passkey (README and `scripts/chipnet-e2e.ts`). |
 | Old hero: “Face ID signs on this phone”, “Checked on chain”, “No seed phrase” stickers, “Passkey spend” tickets without saying software | **cut** | Removed with the marketing-page redesign. The software-passkey chipnet spend remains documented in README and `docs/ARCHITECTURE.md`, clearly labelled as a software passkey, not a phone Face ID. |
 | “Face ID verified” | **cut / never used after this audit** | Forbidden until Henry completes the live iPhone path. Not present in current UI copy. |
@@ -34,7 +34,7 @@ Legend: **true**, **partial**, **false**, **cut**.
 | Signing gate tested “20/20 unit tests” | **false** → fixed | Suite is now 34 tests (`npm test`). README updated. |
 | Live demo deployed at https://cubby-liart-six.vercel.app | **true** | Production alias, Vercel project teamtitanlink/cubby. |
 | Real chipnet deposit `8f9e1dd3…` and spend `2ac70a7c…` | **true** | Explorer links in README. Built by `scripts/chipnet-e2e.ts` with a **software** passkey. README already said that; the site no longer implies otherwise. |
-| Repo still private; no mainnet coins spent | **true** | Origin is private; `allowBroadcast` is false on mainnet. |
+| Repo public; no mainnet coins spent | **true** | https://github.com/henrysammarfo/cubby is public (verified logged out, HTTP 200). `MAINNET_SEND_ENABLED` is true and capped. No mainnet coins have been spent yet. |
 | First commit 17 Nov / `18c652e`; no earlier repo | **true** | Git history. |
 | Phone lock is bound to this website address | **true** | `rpId` is `location.hostname`, hashed into the redeem script (`web/passkey.ts`, `src/covenant.ts` line 179). |
 | Paytaca Apps → WizardConnect → Scan; New code if it hangs | **true** | Receive screen copy; `src/wallet-link.ts` 20s timeout; `web/wizard.ts`. |

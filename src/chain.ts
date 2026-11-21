@@ -159,17 +159,40 @@ export const broadcastTransaction = async (network: Network, txHex: string): Pro
   } catch {
     /* fall through to the explorer */
   }
-  const body = await jsonOrThrow(
-    await fetch(`${network.apiBase}/api/bch/broadcast`, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hex: txHex, transaction: txHex }),
-    }),
-    'explorer broadcast',
-  );
-  const txid = extractTxid(body);
-  if (txid) return txid;
-  throw new Error(`broadcast: unexpected response ${JSON.stringify(body).slice(0, 300)}`);
+  try {
+    const body = await jsonOrThrow(
+      await fetch(`${network.apiBase}/api/bch/broadcast`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hex: txHex, transaction: txHex }),
+      }),
+      'explorer broadcast',
+    );
+    const txid = extractTxid(body);
+    if (txid) return txid;
+  } catch {
+    /* fall through to Electrum / Fulcrum */
+  }
+  const electrumTxid = await broadcastViaElectrum(network, txHex);
+  if (electrumTxid) return electrumTxid;
+  throw new Error('broadcast: watchtower, explorer, and Electrum all failed');
+};
+
+/** Relay a signed transaction through the app's Electrum/Fulcrum API (browser) or skip when no origin is set. */
+const broadcastViaElectrum = async (network: Network, txHex: string): Promise<string | null> => {
+  const path = '/api/broadcast';
+  const origin = typeof window === 'undefined' ? (process.env.CUBBY_ORIGIN ?? '') : '';
+  const url = origin ? `${origin}${path}` : path;
+  if (typeof window === 'undefined' && !origin) return null;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ network: network.id, hex: txHex }),
+  });
+  const body = (await res.json().catch(() => null)) as { txid?: unknown; error?: unknown } | null;
+  if (!res.ok) throw new Error(`electrum broadcast: ${JSON.stringify(body ?? { status: res.status }).slice(0, 300)}`);
+  const txid = typeof body?.txid === 'string' ? body.txid : null;
+  return txid;
 };
 
 /** Find unspent outputs on `address` that appear in a known transaction (no address index required). */
