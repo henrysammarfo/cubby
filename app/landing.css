@@ -89,3 +89,66 @@
   .deck-preview{display:none}
   .deck-frame{display:block}
 }
+
+/* Dark ember hero. Matches the film and deck slide 1: "Your face is the key." */
+.hx{position:relative;background:#050506;color:#F7F2EA;overflow:hidden;isolation:isolate}
+.hx::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(70% 60% at 85% 40%,rgba(255,90,31,.28),transparent 70%),radial-gradient(50% 40% at 10% 100%,rgba(255,197,61,.12),transparent 70%)}
+.hx-nav{position:sticky;top:0;background:rgba(5,5,6,.72);color:#F7F2EA;border-bottom:1px solid rgba(255,255,255,.06);max-width:none;padding-top:.65rem;padding-bottom:.65rem}
+.hx-nav nav{color:rgba(247,242,234,.72)}
+.hx-nav nav a:hover{color:#fff}
+.hx-open{display:inline-flex;align-items:center;min-height:2.5rem;padding:0 1rem;border-radius:999px;font-weight:650;font-size:.9375rem;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18);color:#fff;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.hx-open:hover{background:rgba(255,255,255,.16)}
+.hx-hero{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:1.75rem var(--pad) 0;display:grid;gap:1.25rem;align-items:center}
+.hx-pill{display:inline-flex;align-items:center;gap:.5rem;min-height:2rem;padding:.3rem .8rem;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16);font-size:.8125rem;font-weight:650;color:rgba(247,242,234,.88)}
+.hx-pill .dot{width:.45rem;height:.45rem;border-radius:999px;background:#34C77B;box-shadow:0 0 0 4px rgba(52,199,123,.2)}
+.hx h1{font-size:clamp(3rem,13vw,6rem);line-height:.95;font-weight:800;letter-spacing:-.045em;margin:1rem 0 1rem;max-width:9ch;text-wrap:balance;color:#fff}
+.hx h1 em{font-style:normal;background:linear-gradient(120deg,#FF5A1F,#FFC53D);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hx-lead{font-size:clamp(1.0625rem,2.4vw,1.25rem);line-height:1.5;color:rgba(247,242,234,.78);max-width:32rem;text-wrap:pretty}
+.hx-ctas{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem;margin-top:1.5rem}
+.hx-try{display:inline-flex;align-items:center;justify-content:center;min-height:3.5rem;padding:0 2rem;border-radius:999px;font-weight:700;font-size:1.0625rem;color:#fff;background:linear-gradient(135deg,#FF5A1F,#FF7A2E 60%,#FF9F43);box-shadow:0 12px 32px rgba(255,90,31,.38),inset 0 1px 0 rgba(255,255,255,.3);flex:1 1 auto;max-width:20rem}
+.hx-try:hover{filter:brightness(1.06)}
+.hx-film{display:inline-flex;align-items:center;gap:.6rem;min-height:3rem;font-weight:650;font-size:1rem;color:#fff}
+.hx-play{display:inline-grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:999px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2)}
+.hx-film:hover .hx-play{background:rgba(255,255,255,.2)}
+.hx-small{margin-top:.85rem!important;font-size:.875rem;color:rgba(247,242,234,.6)}
+.hx-art{position:relative;margin:0 calc(-1*var(--pad));min-height:20rem}
+.hx-mascot{display:block;width:100%;height:auto;max-height:28rem;object-fit:cover;object-position:60% 30%;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 22%,#000 72%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 22%,#000 72%,transparent)}
+.hx-card{position:relative;z-index:2;margin:-6rem var(--pad) 0}
+.hx-trust{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem 1.5rem;max-width:var(--w);margin:0 auto;padding:1.75rem var(--pad) 2.25rem;font-size:.875rem;color:rgba(247,242,234,.7)}
+.hx-trust li{display:inline-flex;align-items:center;gap:.4rem}
+.hx-trust svg{color:#FFC53D}
+
+/* Hold card, glass */
+.hc{width:100%;max-width:21rem;margin:0 auto;padding:1rem;border-radius:1.5rem;background:rgba(24,19,17,.8);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 0 0 .5px rgba(255,255,255,.16);color:#F7F2EA}
+.hc-top{display:flex;align-items:center;gap:.65rem}
+.hc-av{display:grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:.8rem;background:#0B0B0F;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18);color:#FFC53D;transition:background .3s}
+.hc.is-open .hc-av{background:#34C77B;color:#fff}
+.hc-who{display:flex;flex-direction:column;min-width:0}
+.hc-who b{font-size:.9375rem}
+.hc-who small{font-size:.8125rem;color:rgba(247,242,234,.65)}
+.hc-bal{margin:.85rem 0 .65rem;font:750 1.5rem var(--display);letter-spacing:-.02em;color:#fff}
+.hc-dots{letter-spacing:.12em}
+.hc-bal small{font-size:.875rem;color:rgba(247,242,234,.6);font-weight:650}
+.hc-steps{list-style:none;padding:0;margin:0 0 .85rem;display:grid;gap:.4rem;font-size:.8125rem;color:rgba(247,242,234,.5)}
+.hc-steps li{display:flex;align-items:center;gap:.5rem;transition:color .25s}
+.hc-steps li.on{color:#F7F2EA}
+.hc-dot{display:grid;place-items:center;width:1rem;height:1rem;border-radius:999px;box-shadow:inset 0 0 0 1.5px rgba(247,242,234,.25);flex:0 0 auto}
+.hc-steps li.on .hc-dot{background:#34C77B;box-shadow:none;color:#fff}
+.hc-btn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;min-height:3.25rem;border-radius:999px;background:linear-gradient(135deg,#FF5A1F,#FF7A2E);color:#fff;font-weight:700;font-size:1rem;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hc-fill{position:absolute;inset:0;background:rgba(255,255,255,.28);transform-origin:left center;transform:scaleX(0)}
+.hc-lab{position:relative;display:inline-flex;align-items:center;gap:.5rem}
+.hc-go{background:#fff;color:#0B0B0F}
+.hc-foot{margin-top:.6rem!important;text-align:center;font-size:.75rem;color:rgba(247,242,234,.5)}
+@media (prefers-reduced-motion:reduce){.hc-steps li,.hc-av{transition:none}}
+
+@media (min-width:640px){
+  .hx-try{flex:0 0 auto}
+}
+@media (min-width:960px){
+  .hx-hero{grid-template-columns:1.05fr .95fr;gap:2rem;padding-top:3rem;min-height:min(40rem,calc(100vh - 8rem))}
+  .hx-art{margin:0;min-height:34rem;display:grid;align-items:center}
+  .hx-mascot{max-height:none;width:115%;max-width:none;margin-left:-14%;-webkit-mask-image:radial-gradient(closest-side at 52% 50%,#000 62%,transparent 100%);mask-image:radial-gradient(closest-side at 52% 50%,#000 62%,transparent 100%)}
+  .hx-card{position:absolute;right:-1.5rem;bottom:-.5rem;margin:0;width:17.5rem}
+  .hx-art{padding-bottom:4rem}
+  .hx-trust{justify-content:flex-start;padding-top:1rem;max-width:calc(var(--w) + 2*var(--pad))}
+}

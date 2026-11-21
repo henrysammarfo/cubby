@@ -1,70 +1,58 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { Check, Copy, Flame, Github, Presentation } from 'lucide-react';
 import { DECK_HREF, EMBER_TOKEN_ADDRESS, REPO_URL } from '@/src/banner';
 import { copy } from './kit';
 
 const FULL_ON = new Set(['/', '/film']);
+const bare = EMBER_TOKEN_ADDRESS.replace('bitcoincash:', '');
+const SHORT = `${bare.slice(0, 4)}…${bare.slice(-4)}`;
 
-function CopyEmber({ compact = false }: { compact?: boolean }) {
-  const [on, setOn] = useState(false);
-  return (
-    <button
-      className={'copy press' + (on ? ' is-on' : '')}
-      type="button"
-      aria-label="Copy the EMBER vote address"
-      aria-describedby="emberAddress"
-      onClick={async () => { await copy(EMBER_TOKEN_ADDRESS, 'Address copied'); setOn(true); setTimeout(() => setOn(false), 1600); }}
-    >
-      <span className="lab">{compact ? 'Copy' : 'Copy'}</span>
-      <span className="done" aria-hidden="true">Copied</span>
-    </button>
-  );
-}
-
+/**
+ * BLAZE 2026 entry strip. One row on every screen size: intro deck, source code,
+ * and the EMBER vote address with copy. Phones show a short address; wider
+ * screens show it in full. The strip owns the iPhone safe area at the top.
+ */
 export function BlazeBanner() {
   const path = usePathname() || '/';
-  const q = useSearchParams();
-  const suffix = q.get('demo') === '1' || q.get('shot') === '1' ? '?demo=1' : '';
   const full = FULL_ON.has(path);
-
-  if (!full) {
-    return (
-      <div className="blaze slim" role="region" aria-label="BLAZE 2026 entry">
-        <span className="pill">BLAZE 2026</span>
-        <span className="ember-line">
-          <span id="emberAddress" className="vote" title={EMBER_TOKEN_ADDRESS}>Vote EMBER</span>
-          <code className="addr">{EMBER_TOKEN_ADDRESS.replace('bitcoincash:', 'bitcoincash:').slice(0, 22)}…</code>
-        </span>
-        <CopyEmber compact />
-        <Link className="more" href={'/settings' + suffix + '#about'}>About</Link>
-      </div>
-    );
-  }
+  const [done, setDone] = useState(false);
 
   return (
-    <div>
-      <div className="blaze" role="region" aria-label="BLAZE 2026 entry">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <span className="mark"><img src="/logo/cubby.svg" alt="" width={22} height={22} /><span className="pill">BLAZE 2026 ENTRY</span></span>
-        <Link className="stub" href={DECK_HREF}>
-          <b>Widget Factory intro</b>
-          <span className="meta">8-slide intro on this site</span>
+    <div className={'bz' + (full ? ' bz-full' : '')} role="region" aria-label="BLAZE 2026 entry">
+      <div className="bz-in">
+        <span className="bz-tag"><Flame size={13} aria-hidden strokeWidth={2.4} />BLAZE 2026</span>
+        <Link className="bz-link" href={DECK_HREF}>
+          <Presentation size={14} aria-hidden />
+          <span className="bz-s">Deck</span><span className="bz-l">Intro deck</span>
         </Link>
-        <a className="stub" href={REPO_URL} target="_blank" rel="noreferrer">
-          <b>Source code</b>
-          <span className="meta">henrysammarfo/cubby</span>
+        <a className="bz-link" href={REPO_URL} target="_blank" rel="noreferrer">
+          <Github size={14} aria-hidden />
+          <span className="bz-s">Code</span><span className="bz-l">Source code</span>
+          <span className="sr"> (opens in a new tab)</span>
         </a>
-        <div className="ember-stub">
-          <span style={{ minWidth: 0 }}>
-            <b>Vote with EMBER 2026</b>
-            <code className="addr" id="emberAddress" title={EMBER_TOKEN_ADDRESS}>{EMBER_TOKEN_ADDRESS}</code>
+        <button
+          type="button"
+          className={'bz-vote press' + (done ? ' is-on' : '')}
+          title={EMBER_TOKEN_ADDRESS}
+          aria-label={`Copy the EMBER vote address ${EMBER_TOKEN_ADDRESS}`}
+          onClick={async () => { await copy(EMBER_TOKEN_ADDRESS, 'Vote address copied'); setDone(true); setTimeout(() => setDone(false), 1600); }}
+        >
+          <span className="bz-vlab">Vote<span className="bz-l"> with EMBER</span></span>
+          <code id="emberAddress" className="bz-addr">
+            <span className="bz-s">{SHORT}</span>
+            <span className="bz-l">{EMBER_TOKEN_ADDRESS}</span>
+          </code>
+          <span className="bz-ico" aria-hidden>{done ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}</span>
+        </button>
+        {full ? (
+          <span className="bz-note">
+            Built fresh during BLAZE, first commit <a href={REPO_URL + '/commit/18c652e'} target="_blank" rel="noreferrer">17 Nov</a>
           </span>
-          <CopyEmber />
-        </div>
+        ) : null}
       </div>
-      <p className="blaze-note">Built fresh during BLAZE, first commit <a href={REPO_URL + '/commit/18c652e'} target="_blank" rel="noreferrer">17 Nov</a>.</p>
     </div>
   );
 }
