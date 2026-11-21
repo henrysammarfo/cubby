@@ -33,7 +33,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     explorerAddress: 'https://chipnet.bchexplorer.info/address/{address}',
     apiBase: 'https://chipnet.bchexplorer.info',
     watchtowerBase: 'https://chipnet.watchtower.cash/api',
-    faucetHint: 'https://apecs.dev/bch/faucets',
+    faucetHint: 'https://tbch.googol.cash/',
     recommendedFundSats: RECOMMENDED_FUND_SATS,
     vaultSpendFeeSats: VAULT_SPEND_FEE_SATS,
     allowBroadcast: true,

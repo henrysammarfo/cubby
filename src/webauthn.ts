@@ -62,3 +62,107 @@ export const decodeUncompressed = (bytes: Uint8Array): { x: bigint; y: bigint } 
     y: BigInt(`0x${Buffer.from(pt.subarray(33, 65)).toString('hex')}`),
   };
 };
+
+
+/** Copy a view into a standalone ArrayBuffer (Safari rejects a shared backing buffer). */
+export const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
+  const copy = new Uint8Array(data.byteLength);
+  copy.set(data);
+  return copy.buffer;
+};
+
+/** Minimal CBOR reader for a WebAuthn attestation object (maps, bytes, ints). */
+type Cbor = number | bigint | Uint8Array | Cbor[] | Map<Cbor, Cbor> | string;
+
+export const decodeCbor = (bytes: Uint8Array, start = 0): { value: Cbor; offset: number } => {
+  const byte = bytes[start];
+  if (byte === undefined) throw new Error('CBOR: truncated');
+  const major = byte >> 5;
+  let addi = byte & 31;
+  let offset = start + 1;
+  const take = (n: number): Uint8Array => {
+    const slice = bytes.subarray(offset, offset + n);
+    if (slice.length !== n) throw new Error('CBOR: truncated');
+    offset += n;
+    return slice;
+  };
+  const lenOf = (): number => {
+    if (addi < 24) return addi;
+    if (addi === 24) return take(1)[0]!;
+    if (addi === 25) { const v = take(2); return (v[0]! << 8) | v[1]!; }
+    if (addi === 26) { const v = take(4); return Number((BigInt(v[0]!) << 24n) | (BigInt(v[1]!) << 16n) | (BigInt(v[2]!) << 8n) | BigInt(v[3]!)); }
+    throw new Error('CBOR: length too large');
+  };
+  if (major === 0) return { value: lenOf(), offset };
+  if (major === 1) return { value: -1 - lenOf(), offset };
+  if (major === 2) { const n = lenOf(); return { value: take(n), offset }; }
+  if (major === 3) { const n = lenOf(); return { value: new TextDecoder().decode(take(n)), offset }; }
+  if (major === 4) {
+    const n = lenOf();
+    const arr: Cbor[] = [];
+    for (let i = 0; i < n; i++) {
+      const next = decodeCbor(bytes, offset);
+      arr.push(next.value);
+      offset = next.offset;
+    }
+    return { value: arr, offset };
+  }
+  if (major === 5) {
+    const n = lenOf();
+    const map = new Map<Cbor, Cbor>();
+    for (let i = 0; i < n; i++) {
+      const k = decodeCbor(bytes, offset);
+      const v = decodeCbor(bytes, k.offset);
+      map.set(k.value, v.value);
+      offset = v.offset;
+    }
+    return { value: map, offset };
+  }
+  throw new Error(`CBOR: unsupported major type ${major}`);
+};
+
+const mapGet = (map: Map<Cbor, Cbor>, key: number): Cbor | undefined => {
+  for (const [k, v] of map) if (k === key) return v;
+  return undefined;
+};
+
+/** Read an uncompressed P-256 point from a COSE_Key map (kty=2, crv=1, x=-2, y=-3). */
+export const publicKeyFromCose = (cose: Uint8Array): { x: bigint; y: bigint } => {
+  const { value } = decodeCbor(cose);
+  if (!(value instanceof Map)) throw new Error('COSE key is not a map');
+  const kty = mapGet(value, 1);
+  const crv = mapGet(value, -1);
+  const x = mapGet(value, -2);
+  const y = mapGet(value, -3);
+  if (kty !== 2 || crv !== 1 || !(x instanceof Uint8Array) || !(y instanceof Uint8Array) || x.length !== 32 || y.length !== 32) {
+    throw new Error('The phone lock did not return a P-256 public key.');
+  }
+  return { x: BigInt(`0x${Buffer.from(x).toString('hex')}`), y: BigInt(`0x${Buffer.from(y).toString('hex')}`) };
+};
+
+/** Pull the public key out of a WebAuthn attestation object when getPublicKey() is missing. */
+export const publicKeyFromAttestationObject = (attestationObject: Uint8Array): { x: bigint; y: bigint } => {
+  const { value } = decodeCbor(attestationObject);
+  if (!(value instanceof Map)) throw new Error('attestation object is not a map');
+  const authData = value.get('authData');
+  if (!(authData instanceof Uint8Array) || authData.length < 55) throw new Error('The device did not return a public key.');
+  const flags = authData[32]!;
+  if ((flags & 0x40) === 0) throw new Error('The device did not return a public key.');
+  const idLen = (authData[53]! << 8) | authData[54]!;
+  const coseStart = 55 + idLen;
+  if (coseStart >= authData.length) throw new Error('The device did not return a public key.');
+  return publicKeyFromCose(authData.subarray(coseStart));
+};
+
+export const UP_UV = 0x05;
+
+export const assertAuthenticatorFlags = (authenticatorData: Uint8Array, rpIdHash: Uint8Array): void => {
+  if (authenticatorData.length < 37) throw new Error('The phone lock reply was too short.');
+  if (Buffer.compare(authenticatorData.subarray(0, 32), rpIdHash) !== 0) {
+    throw new Error('This phone lock belongs to a different website address. Open the live Cubby site and try again.');
+  }
+  const flags = authenticatorData[32]!;
+  if ((flags & UP_UV) !== UP_UV) {
+    throw new Error('The phone lock did not confirm it was you. Unlock the device and approve again.');
+  }
+};

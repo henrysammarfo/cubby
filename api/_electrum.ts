@@ -135,3 +135,19 @@ export const getHistories = async (network: string, addresses: string[]): Promis
   }
   throw new Error(`Electrum history failed: ${last}`);
 };
+
+export interface HistoryEntry {
+  readonly txid: string;
+  readonly height: number;
+}
+
+export const getHistoryEntries = async (network: string, address: string): Promise<HistoryEntry[]> => {
+  const result = (await withServers(network, 'blockchain.scripthash.get_history', [scriptHash(address)])) as Array<{
+    tx_hash?: string;
+    height?: number;
+  }>;
+  if (!Array.isArray(result)) return [];
+  return result
+    .filter((row) => typeof row.tx_hash === 'string' && /^[0-9a-f]{64}$/i.test(row.tx_hash))
+    .map((row) => ({ txid: row.tx_hash!, height: Number(row.height ?? 0) }));
+};

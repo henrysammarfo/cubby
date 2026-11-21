@@ -20,12 +20,33 @@ export const buildUnsignedVaultSpend = (
   network: Network,
   vaultUtxo: ChainUtxo,
   destinationLocking: Uint8Array,
+  options?: { amountSats?: bigint; changeLocking?: Uint8Array },
 ): TransactionBch => {
   const fee = network.vaultSpendFeeSats;
   if (vaultUtxo.satoshis < fee + DUST_SATS) {
     throw new Error(
       `The box only holds ${vaultUtxo.satoshis} units, but a send needs about ${fee + DUST_SATS} (fee ${fee} plus a small leftover). Put at least ${network.recommendedFundSats} units in first.`,
     );
+  }
+  const maxSend = vaultUtxo.satoshis - fee;
+  const send = options?.amountSats ?? maxSend;
+  if (send < DUST_SATS) {
+    throw new Error(`That send is too small. The smallest amount is ${DUST_SATS} units.`);
+  }
+  if (send > maxSend) {
+    throw new Error(`The box only has ${maxSend} units to send after the ${fee} unit network fee.`);
+  }
+  const change = maxSend - send;
+  const outputs: Output[] = [{ lockingBytecode: destinationLocking, valueSatoshis: send }];
+  if (change >= DUST_SATS) {
+    const changeLocking = options?.changeLocking;
+    if (!changeLocking) {
+      throw new Error('This send would leave coins in the box, but no return address was given.');
+    }
+    outputs.push({ lockingBytecode: changeLocking, valueSatoshis: change });
+  } else if (change > 0n) {
+    // Leftover below the smallest output is added to the fee instead of being sent back.
+    outputs[0] = { lockingBytecode: destinationLocking, valueSatoshis: send };
   }
   return {
     version: 2,
@@ -38,7 +59,7 @@ export const buildUnsignedVaultSpend = (
         unlockingBytecode: new Uint8Array(),
       },
     ],
-    outputs: [{ lockingBytecode: destinationLocking, valueSatoshis: vaultUtxo.satoshis - fee }],
+    outputs,
   };
 };
 

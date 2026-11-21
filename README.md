@@ -1,6 +1,6 @@
 # Cubby
 
-**Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (20/20 unit tests). The live demo is deployed. A real chipnet vault deposit and passkey spend are on the test network (see links below). The repository is still private. No mainnet coins have been spent.
+**Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (34 unit tests). The live demo is deployed. A real chipnet vault deposit and passkey spend are on the test network (see links below). The repository is still private. No mainnet coins have been spent.
 
 Cubby was built fresh during BLAZE. The first commit is 17 November 2026 ([18c652e](https://github.com/henrysammarfo/cubby/commit/18c652e)). There is no earlier demo and no earlier repository, so judges do not need a 14 November starting-state demo link.
 
@@ -22,7 +22,7 @@ The live demo is at https://cubby-liart-six.vercel.app. Open it on a phone or la
 2. Optionally connect a Bitcoin Cash wallet with WizardConnect. In Paytaca, open Apps, then WizardConnect, then Scan (the usual Scan button does not connect). If it hangs, tap New code on the demo for a fresh code. Selene and Cashonize can scan or open the connection link. Stay on the test network, or tick Use the main network in the menu (sending on the main network stays off).
 3. Create your phone lock. It is tied to this website address.
 4. Send at least 20 000 test units to the box address (or paste the payment id after you send). The on-chain check is a large transaction, about 10 KB, and the fee is 1 unit per byte, so a smaller deposit cannot cover the send.
-5. Send the coins back with your face or fingerprint.
+5. Send the coins back with your face or fingerprint (see docs/FACE-ID-TEST.md for the iPhone Safari path on this origin). A real iPhone Face ID spend on the live site has not been completed yet.
 6. Open the payment on the explorer.
 
 Main network sending stays off until Henry approves the funding address and the exact number of satoshis (20 000 satoshis, which is 0.0002 BCH, is the planned amount).
@@ -36,7 +36,7 @@ These are real chipnet transactions (coins have no value). They were built by th
 - Passkey spend: https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993
 - Box address: `bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk`
 
-Also listed on the live demo hero as “Completed test network spend”.
+These proof payments are documented here and in docs/ARCHITECTURE.md. They are not shown in the app as if they were a visitor’s own phone spend.
 
 ## What the covenant checks (one input, no helper outputs)
 
@@ -68,21 +68,24 @@ Run `npm run size` for a fresh distribution.
 
 ```bash
 npm install
-npm test              # 20 tests: acceptance, negatives, units
+npm test              # unit tests: acceptance, negatives, wallet link, WebAuthn parsing
 npm run typecheck
 npm run dev           # local demo at http://localhost:5173
 npm run build:web
 npx tsx scripts/chipnet-e2e.ts   # faucet, fund, software passkey spend on chipnet
+npx tsx scripts/ui-auth-e2e.ts    # virtual authenticator through the real UI (needs chipnet coins)
+npx tsx scripts/ui-smoke.ts        # landing and app screenshots
 ```
 
 `harness/passkey-device-check.html` is still there for collecting a raw device assertion.
 
 ## Where to read
 
-- `web/`: the live demo (minimal, token based styles, no logo)
-- `src/covenant.ts`: the covenant (CashAssembly generated with a small named-stack helper, `src/asm.ts`)
+- `web/`: the live app (short landing plus the box screens)
+- `src/covenant.ts`: the on-chain check (CashAssembly generated with a small named-stack helper, `src/asm.ts`)
 - `src/vault-spend.ts`, `src/p2pkh-send.ts`, `src/chain.ts`: payment building and explorer access
 - `test/gate.test.ts`: acceptance tests from plan section 6.1 plus negative cases
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/FACE-ID-TEST.md`, `docs/AUDIT.md`, `docs/BOUNTIES.md`
 - `DOCS_NOTES.md`: every protocol fact used, with source and date
 
 ## Limitations

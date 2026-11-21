@@ -2,7 +2,8 @@ import { defineConfig, type ViteDevServer } from 'vite';
 import { resolve } from 'node:path';
 import { getNetwork } from '../src/network.ts';
 import { utxosFromWatchtower } from '../src/chain.ts';
-import { getHistories } from '../api/_electrum.ts';
+import { getHistories, getHistoryEntries } from '../api/_electrum.ts';
+import { describeAddressTransactions } from '../src/chain.ts';
 
 const apiPlugin = () => ({
   name: 'cubby-api',
@@ -10,6 +11,27 @@ const apiPlugin = () => ({
     server.middlewares.use(async (req, res, next) => {
       const url = req.url ?? '';
       const parsed = new URL(url, 'http://localhost');
+
+      if (parsed.pathname === '/api/txs') {
+        const address = (parsed.searchParams.get('address') ?? '').trim();
+        const networkId = parsed.searchParams.get('network') ?? 'chipnet';
+        const network = getNetwork(networkId);
+        res.setHeader('Content-Type', 'application/json');
+        if (!address) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'address is required' }));
+          return;
+        }
+        try {
+          const entries = await getHistoryEntries(networkId, address);
+          const txs = await describeAddressTransactions(network, address, entries);
+          res.end(JSON.stringify({ txs: txs.map((tx) => ({ ...tx, satoshis: String(tx.satoshis) })) }));
+        } catch (error) {
+          res.statusCode = 503;
+          res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
+        }
+        return;
+      }
       if (parsed.pathname === '/api/history') {
         const addresses = parsed.searchParams.getAll('address').flatMap((a) => a.split(',')).map((a) => a.trim()).filter(Boolean);
         const networkId = parsed.searchParams.get('network') ?? 'chipnet';

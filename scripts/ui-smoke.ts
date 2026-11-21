@@ -1,4 +1,4 @@
-import { chromium, webkit, type Browser, type Page } from 'playwright';
+import { chromium, webkit, type Browser, type BrowserContext, type Page } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,19 +10,31 @@ const BASE = process.env.CUBBY_URL ?? 'http://127.0.0.1:4173';
 const CHROME = '/usr/bin/google-chrome';
 const issues: string[] = [];
 
+const VAULT = {
+  credentialId: 'AQIDBA',
+  publicKeyX: '11'.repeat(32),
+  publicKeyY: '22'.repeat(32),
+  rpId: '127.0.0.1',
+  address: 'bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk',
+  network: 'chipnet',
+};
+
 const shot = async (page: Page, name: string): Promise<void> => {
   await page.screenshot({ path: resolve(OUT, `${name}.png`), fullPage: false });
 };
 
-const overflowAt = async (browser: Browser, width: number, engine: string): Promise<void> => {
+const withVault = async (browser: Browser, viewport: { width: number; height: number }, dpr = 1): Promise<{ context: BrowserContext; page: Page }> => {
+  const context = await browser.newContext({ viewport, deviceScaleFactor: dpr });
+  await context.addInitScript((vault) => {
+    localStorage.setItem('cubby-vault-v1', JSON.stringify(vault));
+  }, VAULT);
+  const page = await context.newPage();
+  return { context, page };
+};
+
+const overflowAt = async (browser: Browser, width: number, engine: string, path = '/?shot=1'): Promise<void> => {
   const page = await browser.newPage({ viewport: { width, height: 844 } });
-  try {
-    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  } catch (error) {
-    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    void error;
-  }
-  await page.waitForSelector('#stage');
+  await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForTimeout(400);
   const m = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
@@ -30,31 +42,27 @@ const overflowAt = async (browser: Browser, width: number, engine: string): Prom
     bodyScroll: document.body.scrollWidth,
   }));
   const ok = m.scroll === m.client && m.bodyScroll <= m.client;
-  const line = `${engine} ${width}: scrollWidth=${m.scroll} clientWidth=${m.client} body=${m.bodyScroll}`;
+  const line = `${engine} ${width}${path}: scrollWidth=${m.scroll} clientWidth=${m.client} body=${m.bodyScroll}`;
   console.log(ok ? `ok  ${line}` : `FAIL ${line}`);
   if (!ok) issues.push(`Horizontal overflow ${line}`);
   await page.close();
 };
 
-const holdFlow = async (page: Page): Promise<void> => {
-  const hold = page.locator('#hold');
-  await hold.scrollIntoViewIfNeeded();
-  const box = await hold.boundingBox();
-  if (!box) throw new Error('Hold button is not visible');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(1400);
-  await page.mouse.up();
-  await page.waitForTimeout(1600);
-  const state = await page.locator('#vault').getAttribute('data-state');
-  if (state !== 'success' && state !== 'checking') {
-    issues.push(`Hold flow ended in data-state=${state}`);
-  } else {
-    console.log(`ok  hold flow state=${state}`);
-  }
-};
-
 const chromeLaunch = { executablePath: CHROME, args: ['--no-sandbox', '--disable-gpu'] };
+
+const SCREENS: Array<{ name: string; path: string; vault?: boolean }> = [
+  { name: 'home', path: '/?shot=1' },
+  { name: 'film', path: '/?shot=1#demoFilm' },
+  { name: 'create', path: '/?shot=1&screen=create' },
+  { name: 'unlock', path: '/?shot=1&screen=unlock', vault: true },
+  { name: 'dashboard', path: '/?shot=1&screen=dashboard', vault: true },
+  { name: 'receive', path: '/?shot=1&screen=receive', vault: true },
+  { name: 'send', path: '/?shot=1&screen=send', vault: true },
+  { name: 'review', path: '/?shot=1&screen=review', vault: true },
+  { name: 'success', path: '/?shot=1&screen=success', vault: true },
+  { name: 'activity', path: '/?shot=1&screen=activity', vault: true },
+  { name: 'details', path: '/?shot=1&screen=details', vault: true },
+];
 
 const runChromiumScreens = async (): Promise<void> => {
   const browser = await chromium.launch(chromeLaunch);
@@ -62,163 +70,98 @@ const runChromiumScreens = async (): Promise<void> => {
     [1440, 900, '1440'],
     [390, 844, '390'],
   ] as const) {
-    const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: label === '390' ? 2 : 1 });
-    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(500);
-    await shot(page, `home-${label}`);
-
-    await page.goto(`${BASE}/?shot=1&state=success`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(400);
-    await shot(page, `home-success-${label}`);
-
-    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
-    await page.locator('#demoFilm').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `film-${label}`);
-
-    await page.locator('#demoProof').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `proof-${label}`);
-
-    await page.locator('#how').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `how-${label}`);
-
-    await page.locator('#try').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `try-${label}`);
-
-    await page.locator('#connect').click();
-    await page.locator('#qrWrap').waitFor({ state: 'visible', timeout: 15000 });
-    await page.locator('#qr').evaluate(`(el) => el.scrollIntoView({ block: 'center' })`);
-    await page.waitForTimeout(400);
-    await shot(page, `connect-${label}`);
-
-    await page.locator('#activity').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `activity-${label}`);
-
-    await page.locator('#business').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `business-${label}`);
-
-    await page.locator('footer.site').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(200);
-    await shot(page, `footer-${label}`);
-
-    await page.evaluate(() => {
-      const modal = document.getElementById('reviewModal') as HTMLDialogElement | null;
-      const title = document.getElementById('reviewTitle');
-      const body = document.getElementById('reviewBody');
-      if (!modal || !title || !body) return;
-      title.textContent = 'Review this action';
-      body.innerHTML = '<dt>Network</dt><dd>Test network</dd><dt>Amount</dt><dd>20 000 units</dd>';
-      modal.showModal();
-    });
-    await page.waitForTimeout(200);
-    await shot(page, `review-${label}`);
-    await page.close();
+    const dpr = label === '390' ? 2 : 1;
+    for (const screen of SCREENS) {
+      const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
+      if (screen.vault) {
+        await context.addInitScript((vault) => {
+          localStorage.setItem('cubby-vault-v1', JSON.stringify(vault));
+        }, VAULT);
+      }
+      const page = await context.newPage();
+      await page.goto(`${BASE}${screen.path}`, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.waitForTimeout(400);
+      if (screen.name === 'film') {
+        await page.locator('#demoFilm').scrollIntoViewIfNeeded();
+        await page.waitForTimeout(200);
+      }
+      await shot(page, `${screen.name}-${label}`);
+      await context.close();
+    }
   }
+
+  const overflowBrowser = await chromium.launch(chromeLaunch);
+  for (const width of [360, 375, 390, 430]) {
+    await overflowAt(overflowBrowser, width, 'chromium', '/?shot=1');
+    await overflowAt(overflowBrowser, width, 'chromium', '/?shot=1&screen=dashboard');
+  }
+  await overflowBrowser.close();
   await browser.close();
 };
 
-const runIos = async (): Promise<void> => {
-  const browser = await webkit.launch();
-  const devices: Array<{ name: string; width: number; height: number }> = [
-    { name: 'iPhone 14', width: 390, height: 844 },
-    { name: 'iPhone 15', width: 393, height: 852 },
-  ];
-  for (const d of devices) {
-    const page = await browser.newPage({
-      viewport: { width: d.width, height: d.height },
-      deviceScaleFactor: 3,
-      userAgent:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      hasTouch: true,
-      isMobile: true,
-    });
-    await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(600);
-    const m = await page.evaluate(() => ({
-      scroll: document.documentElement.scrollWidth,
-      client: document.documentElement.clientWidth,
-    }));
-    const ok = m.scroll === m.client;
-    const slug = d.name.replace(/\s+/g, '-').toLowerCase();
-    console.log(ok ? `ok  webkit ${d.name} overflow ${m.scroll}/${m.client}` : `FAIL webkit ${d.name} overflow ${m.scroll}/${m.client}`);
-    if (!ok) issues.push(`WebKit ${d.name} overflow scrollWidth=${m.scroll} clientWidth=${m.client}`);
-    await shot(page, `home-webkit-${slug}`);
+const iphoneCheck = async (browser: Browser, label: string, viewport: { width: number; height: number }): Promise<void> => {
+  const context = await browser.newContext({ viewport });
+  await context.addInitScript((vault) => {
+    localStorage.setItem('cubby-vault-v1', JSON.stringify(vault));
+  }, VAULT);
+  const page = await context.newPage();
+  await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle', timeout: 30000 });
+  const overflow = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
+  if (overflow.scroll !== overflow.client) issues.push(`${label} landing overflow ${overflow.scroll}/${overflow.client}`);
+  else console.log(`ok  ${label} landing overflow ${overflow.scroll}/${overflow.client}`);
+  const first = await page.evaluate(() => {
+    const title = document.getElementById('title')?.getBoundingClientRect();
+    const cta = document.getElementById('openApp')?.getBoundingClientRect();
+    const inner = window.innerHeight;
+    return { inner, titleTop: title?.top, ctaBottom: cta?.bottom, ctaInView: !!cta && cta.bottom < inner && cta.top >= 0 };
+  });
+  console.log(`${label} landing`, JSON.stringify(first));
+  if (!first.ctaInView) issues.push(`${label} Open the app is not in the first screen`);
+  await page.screenshot({ path: resolve(OUT, `home-webkit-${label}.png`) });
 
-    const howColor = await page.locator('a.btn-on-dark').evaluate((el) => {
-      const s = getComputedStyle(el);
-      return { color: s.color, bg: s.backgroundColor };
-    });
-    console.log(`webkit ${d.name} How it works color=${howColor.color} bg=${howColor.bg}`);
-    // Dark text on cream: rgb 11,11,15 on 247,242,234
-    if (howColor.color === howColor.bg) issues.push(`How it works contrast failed on ${d.name}`);
-
-    const first = await page.evaluate(`(() => {
-      const box = (sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return { top: r.top, bottom: r.bottom, height: r.height };
-      };
-      const dock = box('.dock');
-      const hold = box('#hold');
-      const vault = box('#vault');
-      const art = box('#art');
-      const limit = dock ? dock.top - 4 : window.innerHeight;
-      return {
-        inner: window.innerHeight,
-        dock, hold, vault, art,
-        holdAboveDock: !!(hold && hold.bottom <= limit && hold.height > 0),
-        vaultInView: !!(vault && vault.top < limit && vault.width !== 0),
-        artInView: !!(art && art.top < limit && art.height > 80),
-      };
-    })()`) as {
-      inner: number;
-      holdAboveDock: boolean;
-      vaultInView: boolean;
-      artInView: boolean;
+  await page.goto(`${BASE}/?shot=1&screen=dashboard`, { waitUntil: 'networkidle', timeout: 30000 });
+  const dash = await page.evaluate(() => {
+    const dock = document.getElementById('dock')?.getBoundingClientRect();
+    const bal = document.getElementById('bal')?.getBoundingClientRect();
+    const wrap = dock && [...document.querySelectorAll('#dock a')].some((a) => (a as HTMLElement).offsetHeight > 40);
+    return {
+      overflow: document.documentElement.scrollWidth === document.documentElement.clientWidth,
+      dockTop: dock?.top,
+      balBottom: bal?.bottom,
+      balAboveDock: !!bal && !!dock && bal.bottom < dock.top,
+      dockWraps: wrap ?? false,
     };
-    console.log(`webkit ${d.name} first screen`, JSON.stringify(first));
-    if (!first.holdAboveDock) issues.push(`Hold to open is below the dock on ${d.name}`);
-    if (!first.vaultInView) issues.push(`Vault card not in first screen on ${d.name}`);
-    if (!first.artInView) issues.push(`Mascot art not in first screen on ${d.name}`);
+  });
+  console.log(`${label} dashboard`, JSON.stringify(dash));
+  if (!dash.overflow) issues.push(`${label} dashboard overflow`);
+  if (!dash.balAboveDock) issues.push(`${label} balance sits under the dock`);
+  if (dash.dockWraps) issues.push(`${label} dock labels wrap`);
+  await page.screenshot({ path: resolve(OUT, `dashboard-webkit-${label}.png`) });
+  await context.close();
+};
 
-    await holdFlow(page);
-    await shot(page, `home-webkit-${slug}-held`);
-    await page.close();
+const runWebkit = async (): Promise<void> => {
+  const browser = await webkit.launch();
+  for (const width of [360, 375, 390, 430]) {
+    await overflowAt(browser, width, 'webkit', '/?shot=1');
+    await overflowAt(browser, width, 'webkit', '/?shot=1&screen=dashboard');
   }
+  await iphoneCheck(browser, 'iphone-14', { width: 390, height: 844 });
+  await iphoneCheck(browser, 'iphone-15', { width: 393, height: 852 });
   await browser.close();
 };
 
-const runOverflowMatrix = async (): Promise<void> => {
-  const chrome = await chromium.launch(chromeLaunch);
-  for (const w of [360, 375, 390, 430]) await overflowAt(chrome, w, 'chromium');
-  await chrome.close();
-  const safari = await webkit.launch();
-  for (const w of [360, 375, 390, 430]) await overflowAt(safari, w, 'webkit');
-  await safari.close();
+const main = async (): Promise<void> => {
+  await runChromiumScreens();
+  await runWebkit();
+  if (issues.length) {
+    console.error(`UI smoke failed:\n${issues.map((i) => `- ${i}`).join('\n')}`);
+    process.exit(1);
+  }
+  console.log(`\nUI smoke passed. Screenshots in ${OUT}`);
 };
 
-const chromiumHold = async (): Promise<void> => {
-  const browser = await chromium.launch(chromeLaunch);
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto(`${BASE}/?shot=1`, { waitUntil: 'networkidle' });
-  await holdFlow(page);
-  await browser.close();
-};
-
-await runChromiumScreens();
-await runOverflowMatrix();
-await runIos();
-await chromiumHold();
-
-if (issues.length) {
-  console.error('\nUI smoke failed:');
-  for (const i of issues) console.error(' -', i);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
-}
-console.log(`\nUI smoke passed. Screenshots in ${OUT}`);
+});

@@ -58,10 +58,21 @@ export interface ExplorerVout {
   };
 }
 
+export interface ExplorerVin {
+  readonly txid?: string;
+  readonly vout?: number;
+  readonly value?: number;
+  readonly scriptPubKey?: {
+    readonly hex?: string;
+    readonly addresses?: string[];
+  };
+}
+
 export interface ExplorerTx {
   readonly txid: string;
   readonly status?: string;
-  readonly confirmations?: number;
+  readonly confirmations?: number | undefined;
+  readonly vin?: ExplorerVin[];
   readonly vout: ExplorerVout[];
 }
 
@@ -238,4 +249,78 @@ export const addressesHaveHistory = async (network: Network, addresses: string[]
       return utxos.length > 0;
     }),
   );
+};
+
+
+export interface HistoryRef {
+  readonly txid: string;
+  readonly height: number;
+}
+
+export interface AddressTx {
+  readonly txid: string;
+  readonly height: number;
+  readonly confirmations?: number | undefined;
+  readonly direction: 'in' | 'out' | 'both';
+  readonly satoshis: bigint;
+}
+
+/** Classify explorer transactions as money in or out of `address`. */
+export const describeAddressTransactions = async (
+  network: Network,
+  address: string,
+  entries: readonly HistoryRef[],
+): Promise<AddressTx[]> => {
+  const locking = addressToLocking(address);
+  const lockingHex = binToHex(locking);
+  const newest = [...entries].reverse().slice(0, 30);
+  const out: AddressTx[] = [];
+  for (const entry of newest) {
+    try {
+      const tx = await getTransaction(network, entry.txid);
+      const paysHere = (hex: string | undefined, addresses: string[] | undefined): boolean =>
+        hex === lockingHex || (addresses ?? []).includes(address);
+      let incoming = 0n;
+      let outgoing = 0n;
+      for (const output of tx.vout ?? []) {
+        if (!paysHere(output.scriptPubKey?.hex, output.scriptPubKey?.addresses)) continue;
+        incoming += BigInt(Math.round(output.value * 1e8));
+      }
+      for (const input of tx.vin ?? []) {
+        if (!paysHere(input.scriptPubKey?.hex, input.scriptPubKey?.addresses)) continue;
+        outgoing += BigInt(Math.round((input.value ?? 0) * 1e8));
+      }
+      const direction: AddressTx['direction'] = incoming > 0n && outgoing > 0n ? 'both' : outgoing > 0n ? 'out' : 'in';
+      const satoshis = direction === 'out' ? outgoing : direction === 'both' ? (outgoing > incoming ? outgoing - incoming : incoming) : incoming;
+      out.push({
+        txid: tx.txid,
+        height: entry.height,
+        ...(tx.confirmations !== undefined ? { confirmations: tx.confirmations } : {}),
+        direction,
+        satoshis,
+      });
+    } catch {
+      out.push({ txid: entry.txid, height: entry.height, direction: 'in', satoshis: 0n });
+    }
+  }
+  return out;
+};
+
+export const transactionsFromApi = async (address: string, network: Network): Promise<AddressTx[] | null> => {
+  try {
+    const query = new URLSearchParams({ address, network: network.id });
+    const response = await fetch(`/api/txs?${query.toString()}`);
+    if (!response.ok) return null;
+    const body = (await response.json()) as { txs?: Array<{ txid: string; height: number; confirmations?: number | undefined; direction: 'in' | 'out' | 'both'; satoshis: string | number }> };
+    if (!body.txs) return null;
+    return body.txs.map((row) => ({
+      txid: row.txid,
+      height: row.height,
+      confirmations: row.confirmations,
+      direction: row.direction,
+      satoshis: BigInt(row.satoshis),
+    }));
+  } catch {
+    return null;
+  }
 };

@@ -45,3 +45,85 @@ describe('P-256 helpers', () => {
     expect(P).toBe((1n << 256n) - (1n << 224n) + (1n << 192n) + (1n << 96n) - 1n);
   });
 });
+
+import {
+  assertAuthenticatorFlags,
+  publicKeyFromCose,
+  publicKeyFromAttestationObject,
+  toArrayBuffer,
+  UP_UV,
+} from '../src/webauthn.js';
+import { sha256, utf8ToBin } from '@bitauth/libauth';
+
+describe('WebAuthn parsing for device locks', () => {
+  it('copies a view into a standalone ArrayBuffer', () => {
+    const bigger = new Uint8Array([0, 1, 2, 3, 4]);
+    const view = bigger.subarray(1, 4);
+    const buf = toArrayBuffer(view);
+    expect(buf.byteLength).toBe(3);
+    expect([...new Uint8Array(buf)]).toEqual([1, 2, 3]);
+  });
+
+  it('requires UP and UV flags and a matching website hash', () => {
+    const rp = sha256.hash(utf8ToBin('cubby-liart-six.vercel.app'));
+    const data = new Uint8Array(37);
+    data.set(rp, 0);
+    data[32] = UP_UV;
+    expect(() => assertAuthenticatorFlags(data, rp)).not.toThrow();
+    data[32] = 0x01; // UP only
+    expect(() => assertAuthenticatorFlags(data, rp)).toThrow(/confirm it was you/);
+    data[32] = UP_UV;
+    if (data[0] !== undefined) data[0] ^= 1;
+    expect(() => assertAuthenticatorFlags(data, rp)).toThrow(/different website address/);
+  });
+
+  it('reads a P-256 public key from a COSE map', () => {
+    const x = new Uint8Array(32).fill(0x11);
+    const y = new Uint8Array(32).fill(0x22);
+    // a5 { 1: 2, 3: -7, -1: 1, -2: x, -3: y }
+    const cose = Uint8Array.from([
+      0xa5,
+      0x01, 0x02,
+      0x03, 0x26,
+      0x20, 0x01,
+      0x21, 0x58, 0x20, ...x,
+      0x22, 0x58, 0x20, ...y,
+    ]);
+    const point = publicKeyFromCose(cose);
+    expect(point.x.toString(16).padStart(64, '0')).toBe('11'.repeat(32));
+    expect(point.y.toString(16).padStart(64, '0')).toBe('22'.repeat(32));
+  });
+
+  it('reads the public key from an attestation object when getPublicKey is missing', () => {
+    const rp = sha256.hash(utf8ToBin('example.invalid'));
+    const flags = 0x45; // UP | UV | AT
+    const id = Uint8Array.from([9, 8, 7]);
+    const x = new Uint8Array(32).fill(0x33);
+    const y = new Uint8Array(32).fill(0x44);
+    const cose = Uint8Array.from([
+      0xa5,
+      0x01, 0x02,
+      0x03, 0x26,
+      0x20, 0x01,
+      0x21, 0x58, 0x20, ...x,
+      0x22, 0x58, 0x20, ...y,
+    ]);
+    const authData = new Uint8Array(37 + 16 + 2 + id.length + cose.length);
+    authData.set(rp, 0);
+    authData[32] = flags;
+    authData.set(new Uint8Array(16), 37); // aaguid
+    authData[53] = 0;
+    authData[54] = id.length;
+    authData.set(id, 55);
+    authData.set(cose, 55 + id.length);
+    const encodeBytes = (b: Uint8Array) => (b.length < 24 ? Uint8Array.from([0x40 | b.length, ...b]) : Uint8Array.from([0x58, b.length, ...b]));
+    const encodeText = (s: string) => Uint8Array.from([0x60 | s.length, ...Buffer.from(s)]);
+    const authEnc = encodeBytes(authData);
+    const fmt = Uint8Array.from([...encodeText('fmt'), ...encodeText('none')]);
+    const ad = Uint8Array.from([...encodeText('authData'), ...authEnc]);
+    const att = Uint8Array.from([0xa2, ...fmt, ...ad]);
+    const point = publicKeyFromAttestationObject(att);
+    expect(point.x.toString(16).padStart(64, '0')).toBe('33'.repeat(32));
+    expect(point.y.toString(16).padStart(64, '0')).toBe('44'.repeat(32));
+  });
+});

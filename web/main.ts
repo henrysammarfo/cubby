@@ -1,15 +1,24 @@
 import { Buffer } from 'buffer';
 (globalThis as unknown as { Buffer: typeof Buffer }).Buffer = Buffer;
 
+import QRCode from 'qrcode';
 import { EMBER_TOKEN_ADDRESS, REPO_URL, WIDGET_FACTORY_URL } from '../src/banner.js';
-import { getNetwork, explorerTxUrl, explorerAddressUrl, type Network, type NetworkId } from '../src/network.js';
+import { getNetwork, explorerTxUrl, explorerAddressUrl, type Network, type NetworkId, DUST_SATS } from '../src/network.js';
 import { assertNetworkAddress, addressToLocking, p2pkhAddressFromPublicKey } from '../src/address.js';
-import { addressesHaveHistory, broadcastTransaction, getTransaction, pusdBalanceFromWatchtower, utxosFromApi, utxosFromTransaction, utxosFromWatchtower, type ChainUtxo } from '../src/chain.js';
+import {
+  addressesHaveHistory,
+  broadcastTransaction,
+  getWalletBalances,
+  transactionsFromApi,
+  utxosFromApi,
+  utxosFromTransaction,
+  type ChainUtxo,
+} from '../src/chain.js';
 import { scanAddressBatches } from '../src/wallet-scan.js';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '../src/vault-spend.js';
 import { createDeviceLock, loadVault, requestAssertion, vaultFromStored, currentRpId, type StoredVault } from './passkey.js';
 import { copyConnectionLink, drawQr, requestWalletSend, startConnect, stopConnect, type WalletCoin, type WalletSession } from './wizard.js';
-import { loadActivity, recordActivity, renderActivity } from './activity.js';
+import { loadActivity, mergeChainActivity, recordActivity, renderActivity } from './activity.js';
 import { attachHold } from './hold.js';
 import './hero-demo.js';
 
@@ -28,18 +37,37 @@ const setStatus = (id: string, kind: 'ok' | 'err' | 'info', text: string): void 
   el.classList.remove('hidden');
 };
 
-const formatSats = (sats: bigint): string => {
+const formatBch = (sats: bigint): string => {
   const whole = sats / 100_000_000n;
   const frac = (sats % 100_000_000n).toString().padStart(8, '0').replace(/0+$/, '');
-  return frac ? `${whole}.${frac} BCH (${sats} units)` : `${whole} BCH (${sats} units)`;
+  return frac ? `${whole}.${frac} BCH` : `${whole} BCH`;
 };
 
-const formatPusd = (cents: bigint): string => `${(Number(cents) / 100).toFixed(2)} PUSD`;
+const parseBch = (text: string): bigint | null => {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return null;
+  const [w, f = ''] = trimmed.split('.');
+  return BigInt(w ?? '0') * 100_000_000n + BigInt((f ?? '').padEnd(8, '0'));
+};
 
-let network: Network = getNetwork(new URLSearchParams(location.search).get('network'));
+const shortAddress = (address: string): string => {
+  const [prefix, body] = address.includes(':') ? (address.split(':') as [string, string]) : (['', address] as const);
+  if (body.length <= 10) return address;
+  return `${prefix}:${body.slice(0, 4)}…${body.slice(-4)}`;
+};
+
+const shortTxid = (txid: string): string => (txid.length <= 16 ? txid : `${txid.slice(0, 8)}…${txid.slice(-6)}`);
+
+const params = new URLSearchParams(location.search);
+const shot = params.has('shot') || params.has('state');
+let network: Network = getNetwork(params.get('network'));
 let wallet: WalletSession | undefined;
 let stored: StoredVault | null = loadVault();
 let vaultUtxo: ChainUtxo | undefined;
+let vaultBalance = 0n;
+let pollId: ReturnType<typeof setInterval> | undefined;
+let unlocked = shot;
 
 ($('widgetLink') as HTMLAnchorElement).href = WIDGET_FACTORY_URL;
 ($('repoLink') as HTMLAnchorElement).href = REPO_URL;
@@ -50,15 +78,117 @@ select.value = network.id;
 const useMainnet = $('useMainnet') as HTMLInputElement;
 useMainnet.checked = network.id === 'mainnet';
 
-const refreshActivity = (): void => {
-  const items = stored ? loadActivity(stored.address, network.id) : [];
-  renderActivity($('activityList'), items, network);
+type ScreenName = 'create' | 'unlock' | 'dashboard' | 'receive' | 'send' | 'success' | 'error' | 'activity' | 'details';
+const APP_SCREENS: ScreenName[] = ['create', 'unlock', 'dashboard', 'receive', 'send', 'success', 'error', 'activity', 'details'];
+
+const showLanding = (): void => {
+  $('landing').hidden = false;
+  $('app').hidden = true;
+  $('dock').classList.add('hidden');
+};
+
+const showApp = (): void => {
+  $('landing').hidden = true;
+  $('app').hidden = false;
+};
+
+const paintDock = (name: ScreenName): void => {
+  const dock = $('dock');
+  const inApp = APP_SCREENS.includes(name) && name !== 'create' && name !== 'unlock' && name !== 'success' && name !== 'error';
+  dock.classList.toggle('hidden', !inApp);
+  dock.querySelectorAll('a').forEach((a) => {
+    const key = (a as HTMLElement).dataset.dock;
+    a.setAttribute('aria-current', key === name ? 'page' : 'false');
+  });
+};
+
+const showScreen = (name: ScreenName): void => {
+  showApp();
+  document.querySelectorAll('#app .screen').forEach((el) => {
+    (el as HTMLElement).hidden = (el as HTMLElement).dataset.screen !== name;
+  });
+  paintDock(name);
+};
+
+const entryScreen = (): ScreenName => {
+  if (!stored) return 'create';
+  if (shot) return 'dashboard';
+  return 'unlock';
+};
+
+const refreshNetworkCopy = (): void => {
+  $('dashNetwork').textContent = network.label[0]!.toUpperCase() + network.label.slice(1);
+  $('fundNeed').textContent = network.id === 'chipnet'
+    ? `Send at least ${network.recommendedFundSats} test units so a later send can pay the network fee. Test coins have no value.`
+    : `Send at least ${network.recommendedFundSats} units (0.0002 BCH) so a later send can pay the network fee. Sending on the main network is still off.`;
+  const faucet = $('faucetLink') as HTMLAnchorElement;
+  if (network.faucetHint) {
+    faucet.href = network.id === 'chipnet' ? 'https://tbch.googol.cash/' : network.faucetHint;
+    faucet.classList.toggle('hidden', network.id !== 'chipnet');
+  }
+  $('detailFee').textContent = `${network.vaultSpendFeeSats.toLocaleString('en-GB')} units`;
+  $('detailFund').textContent = `${network.recommendedFundSats.toLocaleString('en-GB')} units`;
+  $('detailNetwork').textContent = network.label;
+  $('sendHint').textContent = `Available ${formatBch(vaultBalance)}. The network fee is ${network.vaultSpendFeeSats} units, taken from the box.`;
+};
+
+const paintVault = (): void => {
+  const address = stored?.address ?? '';
+  $('vaultAddress').textContent = address;
+  $('dashAddress').textContent = address ? shortAddress(address) : 'No box yet';
+  $('detailAddress').textContent = address;
+  $('unlockAddress').textContent = address;
+  $('detailRp').textContent = stored?.rpId ?? currentRpId();
+  $('detailLock').textContent = stored
+    ? 'Saved on this device after you created the box. A real iPhone Face ID check has not been completed yet.'
+    : 'No phone lock on this device yet.';
+  $('bal').textContent = formatBch(vaultBalance);
+  $('balUnits').textContent = `${vaultBalance} units`;
+  refreshNetworkCopy();
+};
+
+const drawAddressQr = async (): Promise<void> => {
+  if (!stored) return;
+  const canvas = $('addrQr') as HTMLCanvasElement;
+  await QRCode.toCanvas(canvas, stored.address, { margin: 1, width: 240, color: { dark: '#0B0B0F', light: '#ffffff' } });
+};
+
+const refreshActivity = async (): Promise<void> => {
+  const host = $('activityList');
+  if (!stored) {
+    renderActivity(host, [], network);
+    return;
+  }
+  const local = loadActivity(stored.address, network.id);
+  const chain = (await transactionsFromApi(stored.address, network)) ?? [];
+  renderActivity(host, mergeChainActivity(local, chain, stored.address, network.id), network);
+};
+
+const rememberUtxo = (utxo: ChainUtxo): void => {
+  vaultUtxo = utxo;
+};
+
+const refreshBalance = async (): Promise<void> => {
+  if (!stored) {
+    vaultBalance = 0n;
+    vaultUtxo = undefined;
+    paintVault();
+    return;
+  }
+  const utxos = (await utxosFromApi(stored.address, network)) ?? [];
+  vaultBalance = utxos.reduce((sum, u) => sum + u.satoshis, 0n);
+  vaultUtxo = [...utxos].sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
+  paintVault();
+};
+
+const startBalancePoll = (): void => {
+  if (pollId) clearInterval(pollId);
+  pollId = setInterval(() => {
+    void refreshBalance();
+  }, 8_000);
 };
 
 type DiscoveredAddress = { address: string; chain: 'receive' | 'change'; index: number };
-
-let walletCoins: WalletCoin[] = [];
-
 const deriveWalletAddress = (session: WalletSession, chain: 'receive' | 'change') => {
   const child = chain === 'receive' ? 0 : 1;
   return (index: number): DiscoveredAddress | undefined => {
@@ -69,7 +199,7 @@ const deriveWalletAddress = (session: WalletSession, chain: 'receive' | 'change'
 };
 
 const inspectWalletBatch = (batch: DiscoveredAddress[]): Promise<boolean[]> =>
-  addressesHaveHistory(network, batch.map((item) => item.address));
+  addressesHaveHistory(network, batch.map((row) => row.address));
 
 const discoverWalletCoins = async (session: WalletSession): Promise<WalletCoin[]> => {
   const receive = await scanAddressBatches(deriveWalletAddress(session, 'receive'), inspectWalletBatch);
@@ -78,266 +208,185 @@ const discoverWalletCoins = async (session: WalletSession): Promise<WalletCoin[]
     : [];
   const used = [...receive, ...change];
   const coins: WalletCoin[] = [];
-  for (const item of used) {
-    const utxos =
-      (await utxosFromApi(item.address, network)) ??
-      (await utxosFromWatchtower(network, item.address).catch(() => [] as ChainUtxo[]));
-    for (const utxo of utxos) coins.push({ ...utxo, inputPath: [0, item.chain, item.index] });
+  for (const row of used) {
+    const utxos = (await utxosFromApi(row.address, network)) ?? [];
+    for (const utxo of utxos) coins.push({ ...utxo, inputPath: [0, row.chain, row.index] });
   }
   return coins;
 };
 
-const refreshBalances = async (): Promise<void> => {
-  const box = $('walletBalance');
+const refreshWalletBalance = async (): Promise<void> => {
+  const el = $('walletBalance');
   if (!wallet) {
-    walletCoins = [];
-    box.textContent = 'No wallet connected';
+    el.textContent = 'No wallet connected';
     return;
   }
-  box.textContent = 'Checking wallet balance…';
   try {
-    walletCoins = await discoverWalletCoins(wallet);
-    const satoshis = walletCoins.reduce((sum, u) => sum + u.satoshis, 0n);
-    let pusdLabel = formatPusd(0n);
-    if (network.id === 'mainnet') {
-      const pusd = await pusdBalanceFromWatchtower(network, wallet.address);
-      pusdLabel = pusd === null ? 'PUSD unknown' : formatPusd(pusd);
-    }
-    box.innerHTML = `<strong>${wallet.walletName}</strong><br>${formatSats(satoshis)}<br>${pusdLabel}`;
-  } catch (error) {
-    box.textContent = `Connected, but the balance could not be read. ${error instanceof Error ? error.message : ''}`;
+    const balances = await getWalletBalances(network, wallet.address);
+    el.textContent = `${formatBch(balances.satoshis)}${balances.pusdCents ? ` · ${(Number(balances.pusdCents) / 100).toFixed(2)} PUSD` : ''}`;
+  } catch {
+    el.textContent = wallet.address;
   }
-};
-
-const readyStep = (): number => {
-  const lockReady = Boolean(stored && stored.rpId === currentRpId());
-  if (vaultUtxo && lockReady) return 4;
-  if (lockReady) return 3;
-  if (wallet) return 2;
-  return 1;
-};
-
-const paintStepper = (open?: number): void => {
-  const ready = readyStep();
-  const openStep = open ?? ready;
-  document.querySelectorAll('#tryStepper .step').forEach((el) => {
-    const n = Number((el as HTMLElement).dataset.step);
-    el.classList.toggle('is-open', n === openStep);
-    el.classList.toggle('is-done', n < ready);
-    el.classList.toggle('is-active', n === ready);
-    el.classList.toggle('is-locked', n > ready);
-  });
-  document.querySelectorAll('#tryRail li').forEach((el) => {
-    const n = Number((el as HTMLElement).dataset.n);
-    el.classList.toggle('is-done', n < ready);
-    el.classList.toggle('is-active', n === ready);
-  });
-};
-const setWalletConnected = (session: WalletSession | undefined): void => {
-  wallet = session;
-  button('disconnect').classList.toggle('hidden', !session);
-  button('reconnect').classList.add('hidden');
-  button('fundWallet').disabled = !session || !stored || stored.rpId !== currentRpId() || !network.allowBroadcast;
-  if (session) input('dest').value = session.address;
-  void refreshBalances();
-  paintStepper();
 };
 
 const markWalletDropped = (reason: string): void => {
   wallet = undefined;
-  walletCoins = [];
-  button('disconnect').classList.add('hidden');
-  button('fundWallet').disabled = true;
-  $('qrWrap').classList.add('hidden');
-  setStatus('walletStatus', 'err', 'Wallet disconnected');
-  $('walletBalance').textContent = 'Wallet disconnected';
   button('reconnect').classList.remove('hidden');
-  paintStepper();
-  void stopConnect();
-  void reason;
+  button('disconnect').classList.add('hidden');
+  setStatus('walletStatus', 'err', reason);
+  void refreshWalletBalance();
 };
 
-const refreshNetworkCopy = (): void => {
-  $('fundNeed').textContent = network.recommendedFundSats.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  const help = $('networkHelp');
-  if (network.id === 'mainnet') {
-    help.textContent = 'Main network sending is off until Henry approves the funding address and the exact number of units. You can still create a lock and see the box address.';
-  } else {
-    help.textContent = 'The test network coins have no value. A send needs about 20 000 test units in the box so the fee fits. Addresses must start with bchtest.';
-  }
-  if (stored && stored.network === network.id && stored.rpId === currentRpId()) showVault(stored);
-  refreshActivity();
-  void refreshBalances();
-  paintStepper();
+const beginConnect = async (): Promise<void> => {
+  button('reconnect').classList.add('hidden');
+  setStatus('walletStatus', 'info', 'Waiting for your wallet. If nothing happens in 20 seconds, tap New code.');
+  await startConnect(
+    {
+      onUri: (uri, qrUri) => {
+        $('wcUri').textContent = uri;
+        $('wcUri').classList.remove('hidden');
+        $('qr').classList.remove('hidden');
+        button('copyUri').classList.remove('hidden');
+        const open = $('openUri') as HTMLAnchorElement;
+        open.href = qrUri;
+        open.classList.remove('hidden');
+        void drawQr($('qr') as HTMLCanvasElement, qrUri);
+      },
+      onStatus: (message) => setStatus('walletStatus', 'info', message),
+      onReady: (session) => {
+        wallet = session;
+        button('disconnect').classList.remove('hidden');
+        button('reconnect').classList.add('hidden');
+        button('fundWallet').disabled = !stored || !network.allowBroadcast;
+        setStatus('walletStatus', 'ok', `Connected to ${session.walletName}.`);
+        void refreshWalletBalance();
+      },
+      onDropped: markWalletDropped,
+      onTimeout: () => setStatus('walletStatus', 'err', 'Nothing happened in 20 seconds. Tap New code for a fresh code.'),
+      onError: (message) => setStatus('walletStatus', 'err', message),
+    },
+    network,
+  );
 };
 
 const applyNetwork = (id: NetworkId): void => {
   network = getNetwork(id);
   select.value = network.id;
   useMainnet.checked = network.id === 'mainnet';
-  const url = new URL(location.href);
-  url.searchParams.set('network', network.id);
-  history.replaceState({}, '', url);
-  vaultUtxo = undefined;
-  if (wallet) {
-    setStatus('walletStatus', 'info', 'Network changed. Connect the wallet again so the address matches this network.');
-    void stopConnect().then(() => setWalletConnected(undefined));
+  if (stored && stored.network !== network.id) {
+    stored = loadVault();
+    if (stored && stored.network !== network.id) {
+      setStatus('walletStatus', 'info', 'This box was created on a different network. Create a new box to use this network, or switch back.');
+    }
   }
   refreshNetworkCopy();
+  void refreshBalance();
+  void refreshActivity();
+  void refreshWalletBalance();
 };
+
 select.addEventListener('change', () => applyNetwork(select.value as NetworkId));
 useMainnet.addEventListener('change', () => applyNetwork(useMainnet.checked ? 'mainnet' : 'chipnet'));
-
-const showVault = (vault: StoredVault): void => {
-  setStatus(
-    'lockStatus',
-    'ok',
-    vault.rpId === currentRpId() ? 'Your phone lock is ready on this site.' : 'This lock was made on a different website address and will not work here. Create a new one.',
-  );
-  $('vaultAddress').textContent = vault.address;
-  $('copyVault').classList.remove('hidden');
-  paintStepper();
-  void findVaultCoins(true);
-};
 
 const reviewHold = attachHold(button('reviewConfirm'), { hint: document.getElementById('reviewHint') });
 
 const openReview = (title: string, rows: Array<[string, string]>): Promise<boolean> =>
   new Promise((resolve) => {
-    const modal = $('reviewModal') as HTMLDialogElement;
     $('reviewTitle').textContent = title;
     const body = $('reviewBody');
     body.replaceChildren();
-    for (const [label, value] of rows) {
+    for (const [k, v] of rows) {
       const dt = document.createElement('dt');
-      dt.textContent = label;
+      dt.textContent = k;
       const dd = document.createElement('dd');
-      dd.textContent = value;
+      dd.textContent = v;
       body.append(dt, dd);
     }
-    reviewHold.reset();
+    const modal = $('reviewModal') as HTMLDialogElement;
     let settled = false;
-    const finish = (ok: boolean): void => {
+    const finish = (ok: boolean) => {
       if (settled) return;
       settled = true;
+      reviewHold.reset();
+      if (modal.open) modal.close();
       resolve(ok);
     };
-    const onClose = (): void => {
-      modal.removeEventListener('close', onClose);
-      reviewHold.reset();
-      finish(modal.returnValue === 'confirm');
-    };
-    modal.addEventListener('close', onClose);
-    modal.showModal();
+    modal.addEventListener('close', () => finish(false), { once: true });
     void reviewHold.wait().then((ok) => {
-      if (!ok) return;
-      modal.returnValue = 'confirm';
-      if (modal.open) modal.close();
+      if (ok) finish(true);
     });
+    modal.showModal();
   });
 
-const beginConnect = async (): Promise<void> => {
+button('createLock').addEventListener('click', async () => {
   try {
-    await startConnect(
-      {
-        onUri: async (uri, qrUri) => {
-          $('qrWrap').classList.remove('hidden');
-          $('wcUri').textContent = uri;
-          await drawQr($('qr') as HTMLCanvasElement, uri, qrUri);
-          const openLink = $('openUri') as HTMLAnchorElement;
-          openLink.href = uri;
-          openLink.hidden = false;
-          const cashonize = $('openCashonize') as HTMLAnchorElement;
-          cashonize.href = `https://cashonize.com/?uri=${encodeURIComponent(uri)}`;
-          cashonize.hidden = false;
-          setStatus(
-            'walletStatus',
-            'info',
-            'In Paytaca, open Apps, then WizardConnect, then Scan. The usual Scan button does not connect. If it hangs, tap New code for a fresh code.',
-          );
-        },
-        onStatus: (message) => setStatus('walletStatus', 'info', message),
-        onReady: (session) => {
-          $('qrWrap').classList.add('hidden');
-          setWalletConnected(session);
-          setStatus('walletStatus', 'ok', `Connected to ${session.walletName} with WizardConnect. Address: ${session.address}. The balance loads on its own.`);
-          void findVaultCoins(true);
-        },
-        onDropped: (reason) => markWalletDropped(reason),
-        onTimeout: () => {
-          setStatus(
-            'walletStatus',
-            'err',
-            'The wallet did not connect in time. Tap New code for a fresh code, then in Paytaca open Apps, then WizardConnect, then Scan.',
-          );
-        },
-        onError: (message) => setStatus('walletStatus', 'err', message),
-      },
-      network,
-    );
+    button('createLock').disabled = true;
+    setStatus('lockStatus', 'info', 'Waiting for your face or fingerprint…');
+    stored = await createDeviceLock(network);
+    paintVault();
+    await drawAddressQr();
+    setStatus('lockStatus', 'ok', 'Your box is ready.');
+    unlocked = true;
+    showScreen('dashboard');
+    startBalancePoll();
+    void refreshBalance();
   } catch (error) {
-    setStatus('walletStatus', 'err', error instanceof Error ? error.message : String(error));
+    setStatus('lockStatus', 'err', error instanceof Error ? error.message : String(error));
+  } finally {
+    button('createLock').disabled = false;
   }
-};
-$('connect').addEventListener('click', () => void beginConnect());
-$('newQr').addEventListener('click', () => {
-  setStatus('walletStatus', 'info', 'Getting a fresh code…');
-  void beginConnect();
-});
-$('reconnect').addEventListener('click', () => {
-  button('reconnect').classList.add('hidden');
-  setStatus('walletStatus', 'info', 'Getting a fresh code…');
-  void beginConnect();
 });
 
-$('disconnect').addEventListener('click', async () => {
+button('unlockBtn').addEventListener('click', async () => {
+  try {
+    if (!stored) throw new Error('Create a box first.');
+    button('unlockBtn').disabled = true;
+    setStatus('unlockStatus', 'info', 'Waiting for your face or fingerprint…');
+    await requestAssertion(stored, crypto.getRandomValues(new Uint8Array(32)));
+    setStatus('unlockStatus', 'ok', 'Opened.');
+    unlocked = true;
+    showScreen('dashboard');
+    startBalancePoll();
+    void refreshBalance();
+    void refreshActivity();
+  } catch (error) {
+    setStatus('unlockStatus', 'err', error instanceof Error ? error.message : String(error));
+  } finally {
+    button('unlockBtn').disabled = false;
+  }
+});
+
+button('copyVault').addEventListener('click', async () => {
+  if (stored) {
+    await navigator.clipboard.writeText(stored.address);
+    setStatus('fundStatus', 'ok', 'Address copied.');
+  }
+});
+button('qrButton').addEventListener('click', () => button('copyVault').click());
+
+button('connect').addEventListener('click', () => void beginConnect());
+button('newQr').addEventListener('click', () => void beginConnect());
+button('reconnect').addEventListener('click', () => void beginConnect());
+button('disconnect').addEventListener('click', async () => {
   await stopConnect();
-  setWalletConnected(undefined);
-  setStatus('walletStatus', 'info', 'Wallet disconnected.');
+  wallet = undefined;
+  button('disconnect').classList.add('hidden');
+  setStatus('walletStatus', 'info', 'Wallet disconnected');
+  void refreshWalletBalance();
 });
-
-const copyLink = async (): Promise<void> => {
+$('copyUri').addEventListener('click', async () => {
   try {
     await copyConnectionLink();
     setStatus('walletStatus', 'ok', 'Connection link copied.');
   } catch (error) {
     setStatus('walletStatus', 'err', error instanceof Error ? error.message : String(error));
   }
-};
-$('copyUri').addEventListener('click', () => void copyLink());
-$('qrButton').addEventListener('click', () => void copyLink());
-
-$('createLock').addEventListener('click', async () => {
-  try {
-    setStatus('lockStatus', 'info', 'Waiting for your device…');
-    stored = await createDeviceLock(network);
-    showVault(stored);
-    button('fundWallet').disabled = !wallet || !network.allowBroadcast;
-    refreshActivity();
-  } catch (error) {
-    setStatus('lockStatus', 'err', error instanceof Error ? error.message : String(error));
-  }
 });
 
-$('copyVault').addEventListener('click', async () => {
-  if (stored) await navigator.clipboard.writeText(stored.address);
-});
-
-const rememberUtxo = (utxo: ChainUtxo): void => {
-  vaultUtxo = utxo;
-  button('spend').disabled = !network.allowBroadcast;
-  paintStepper();
-  setStatus(
-    'fundStatus',
-    utxo.satoshis >= network.recommendedFundSats ? 'ok' : 'info',
-    `Found ${utxo.satoshis} units in the box.${utxo.satoshis < network.vaultSpendFeeSats + 546n ? ' That is not enough for the send fee yet.' : ''}`,
-  );
-};
-
-$('fundWallet').addEventListener('click', async () => {
+button('fundWallet').addEventListener('click', async () => {
   try {
-    if (!wallet || !stored) throw new Error('Connect a wallet and create a phone lock first.');
-    if (!network.allowBroadcast) throw new Error('Main network sending is off until Henry approves it.');
+    if (!wallet || !stored) throw new Error('Connect a wallet and create a box first.');
+    if (!network.allowBroadcast) throw new Error('Main network sending is off until it is approved.');
     const agreed = await openReview('Review wallet deposit', [
       ['Network', network.label],
       ['From your wallet', wallet.address],
@@ -346,55 +395,20 @@ $('fundWallet').addEventListener('click', async () => {
     ]);
     if (!agreed) return;
     setStatus('fundStatus', 'info', 'Asking your wallet to send coins to the box…');
-    walletCoins = await discoverWalletCoins(wallet);
+    const walletCoins = await discoverWalletCoins(wallet);
     if (walletCoins.length === 0) {
-      throw new Error('Could not find coins in the connected wallet on this network. Send coins to the box address yourself and paste the payment id.');
+      throw new Error('Could not find coins in the connected wallet on this network. Send coins to the box address yourself.');
     }
     const { vault } = vaultFromStored(stored);
     const sent = await requestWalletSend(wallet, walletCoins, vault.lockingBytecode, network.recommendedFundSats, network);
     input('fundTxid').value = sent.txid;
-    recordActivity({
-      kind: 'deposit',
-      txid: sent.txid,
-      at: new Date().toISOString(),
-      satoshis: String(network.recommendedFundSats),
-      network: network.id,
-      vaultAddress: stored.address,
-    });
-    refreshActivity();
-    void refreshBalances();
-    setStatus('fundStatus', 'info', `Wallet payment ${sent.txid}. Looking it up…`);
+    recordActivity({ kind: 'deposit', txid: sent.txid, at: new Date().toISOString(), satoshis: String(network.recommendedFundSats), network: network.id, vaultAddress: stored.address });
     const found = await utxosFromTransaction(network, sent.txid, stored.address);
     const first = found[0];
-    if (!first) throw new Error('The payment was made, but the box output is not visible yet. Wait a moment and press Find the coins.');
-    rememberUtxo(first);
-  } catch (error) {
-    setStatus('fundStatus', 'err', error instanceof Error ? error.message : String(error));
-  }
-});
-
-const findVaultCoins = async (quiet = false): Promise<boolean> => {
-  if (!stored) {
-    if (!quiet) throw new Error('Create a phone lock first so we know the box address.');
-    return false;
-  }
-  const fromApi = await utxosFromApi(stored.address, network);
-  const txid = input('fundTxid').value.trim();
-  const fromTx = txid ? await utxosFromTransaction(network, txid, stored.address) : [];
-  const all = [...(fromApi ?? []), ...fromTx];
-  const unique = new Map(all.map((u) => [`${u.txid}:${u.vout}`, u]));
-  const best = [...unique.values()].sort((a, b) => (a.satoshis < b.satoshis ? 1 : -1))[0];
-  if (!best) {
-    if (!quiet) throw new Error('No coins found yet. Send to the box address, then paste the payment id.');
-    return false;
-  }
-  rememberUtxo(best);
-  return true;
-};
-
-$('checkFund').addEventListener('click', async () => {
-  try {
-    await findVaultCoins(false);
+    if (first) rememberUtxo(first);
+    void refreshBalance();
+    void refreshActivity();
+    setStatus('fundStatus', 'ok', `Wallet payment sent. ${shortTxid(sent.txid)}`);
   } catch (error) {
     setStatus('fundStatus', 'err', error instanceof Error ? error.message : String(error));
   }
@@ -427,10 +441,35 @@ input('dest').addEventListener('input', () => {
   }
 });
 
-$('spend').addEventListener('click', async () => {
+button('sendMax').addEventListener('click', () => {
+  const max = vaultBalance > network.vaultSpendFeeSats ? vaultBalance - network.vaultSpendFeeSats : 0n;
+  input('amount').value = formatBch(max).replace(' BCH', '');
+});
+
+const showSuccess = (txid: string, amount: bigint, dest: string): void => {
+  $('successAmount').textContent = formatBch(amount);
+  $('successTxid').textContent = txid;
+  const spendUrl = explorerTxUrl(network, txid);
+  const addrUrl = explorerAddressUrl(network, dest);
+  $('resultLinks').innerHTML = `<a class="btn btn-ember" href="${spendUrl}" target="_blank" rel="noreferrer">Open this payment</a> <a class="btn btn-on-light" href="${addrUrl}" target="_blank" rel="noreferrer">Open the destination</a>`;
+  showScreen('success');
+};
+
+const showError = (message: string): void => {
+  $('errorText').textContent = message;
+  showScreen('error');
+};
+
+button('errorBack').addEventListener('click', () => {
+  showScreen(stored ? 'dashboard' : 'create');
+});
+
+button('spend').addEventListener('click', async () => {
   try {
-    if (!stored || !vaultUtxo) throw new Error('Create a lock and put coins in the box first.');
-    if (stored.rpId !== currentRpId()) throw new Error('This lock belongs to a different website address.');
+    if (!stored) throw new Error('Create a box first.');
+    await refreshBalance();
+    if (!vaultUtxo) throw new Error('The box is empty. Receive coins first.');
+    if (stored.rpId !== currentRpId()) throw new Error('This box was created on a different website address. Open the original site, or create a new box here.');
     const dest = input('dest').value.trim();
     try {
       assertNetworkAddress(dest, network);
@@ -440,114 +479,45 @@ $('spend').addEventListener('click', async () => {
       return;
     }
     if (!network.allowBroadcast) {
-      setStatus(
-        'spendStatus',
-        'info',
-        `Main network send is paused. Box address: ${stored.address}. Needed: ${network.recommendedFundSats} satoshis (0.0002 BCH) so a ${network.vaultSpendFeeSats} satoshi fee fits.`,
-      );
+      setStatus('spendStatus', 'info', 'Main network sending is off until it is approved.');
       return;
     }
-    const sendAmount = vaultUtxo.satoshis - network.vaultSpendFeeSats;
-    const agreed = await openReview('Review passkey spend', [
+    const parsed = parseBch(input('amount').value);
+    if (parsed === null) {
+      setStatus('spendStatus', 'err', 'Enter an amount in BCH, like 0.0001.');
+      return;
+    }
+    const maxSend = vaultUtxo.satoshis - network.vaultSpendFeeSats;
+    if (parsed > maxSend || parsed < DUST_SATS) {
+      setStatus('spendStatus', 'err', `Enter an amount between ${DUST_SATS} units and ${formatBch(maxSend)}.`);
+      return;
+    }
+    const agreed = await openReview('Review this send', [
       ['Network', network.label],
       ['From your box', stored.address],
       ['To', dest],
-      ['Amount', `${sendAmount} units`],
+      ['Amount', formatBch(parsed)],
       ['Fee', `${network.vaultSpendFeeSats} units`],
     ]);
     if (!agreed) return;
     const { params, vault } = vaultFromStored(stored);
-    const unsigned = buildUnsignedVaultSpend(network, vaultUtxo, addressToLocking(dest));
+    const unsigned = buildUnsignedVaultSpend(network, vaultUtxo, addressToLocking(dest), {
+      amountSats: parsed,
+      changeLocking: vault.lockingBytecode,
+    });
     setStatus('spendStatus', 'info', 'Waiting for your face or fingerprint…');
     const assertion = await requestAssertion(stored, challengeForSpend(unsigned));
     const signed = attachPasskeyUnlock(vault, params, unsigned, vaultUtxo, assertion);
     const txid = await broadcastTransaction(network, signed.hex);
-    recordActivity({
-      kind: 'spend',
-      txid,
-      at: new Date().toISOString(),
-      satoshis: String(sendAmount),
-      network: network.id,
-      vaultAddress: stored.address,
-    });
-    refreshActivity();
-    const spendUrl = explorerTxUrl(network, txid);
-    const addrUrl = explorerAddressUrl(network, dest);
-    setStatus('spendStatus', 'ok', `Sent. The chain accepted the phone lock. Payment id: ${txid}`);
-    $('resultLinks').innerHTML = `<a href="${spendUrl}" target="_blank" rel="noreferrer">Open this payment on the explorer</a> · <a href="${addrUrl}" target="_blank" rel="noreferrer">Open the destination address</a>`;
-    button('spend').disabled = true;
+    recordActivity({ kind: 'spend', txid, at: new Date().toISOString(), satoshis: String(parsed), network: network.id, vaultAddress: stored.address });
+    void refreshBalance();
+    void refreshActivity();
+    showSuccess(txid, parsed, dest);
   } catch (error) {
-    setStatus('spendStatus', 'err', error instanceof Error ? error.message : String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus('spendStatus', 'err', message);
+    showError(message);
   }
-});
-
-const shortTxid = (txid: string): string => (txid.length <= 16 ? txid : `${txid.slice(0, 8)}…${txid.slice(-6)}`);
-const shortAddress = (address: string): string => {
-  const [prefix, body] = address.includes(':') ? (address.split(':') as [string, string]) : (['', address] as const);
-  if (body.length <= 10) return address;
-  return `${prefix}:${body.slice(0, 4)}…${body.slice(-4)}`;
-};
-
-const fillProofTicket = async (kind: 'spend' | 'fund', txid: string, url: string): Promise<void> => {
-  const link = $(kind === 'spend' ? 'proofSpend' : 'proofFund') as HTMLAnchorElement;
-  link.href = url;
-  const short = $(kind === 'spend' ? 'proofSpendShort' : 'proofFundShort');
-  short.textContent = shortTxid(txid);
-  const conf = $(kind === 'spend' ? 'proofSpendConf' : 'proofFundConf');
-  try {
-    const tx = await getTransaction(getNetwork('chipnet'), txid);
-    const count = tx.confirmations;
-    if (typeof count === 'number' && count >= 0) {
-      conf.textContent = count === 1 ? '1 confirmation on the test network' : `${count} confirmations on the test network`;
-      return;
-    }
-  } catch {
-    /* Keep the static confirmed line. */
-  }
-  conf.textContent = 'Confirmed on the test network';
-};
-
-const loadDemoProof = async (): Promise<void> => {
-  try {
-    const response = await fetch('/demo-proof.json', { cache: 'no-store' });
-    if (!response.ok) return;
-    const proof = (await response.json()) as {
-      spend?: string;
-      spendTxid?: string;
-      fund?: string;
-      fundTxid?: string;
-      vaultAddress?: string;
-      explorer?: { spend?: string; fund?: string };
-    };
-    const spend = proof.spendTxid ?? proof.spend;
-    const fund = proof.fundTxid ?? proof.fund;
-    const chipnet = getNetwork('chipnet');
-    if (spend) {
-      await fillProofTicket('spend', spend, proof.explorer?.spend ?? explorerTxUrl(chipnet, spend));
-    }
-    if (fund) {
-      await fillProofTicket('fund', fund, proof.explorer?.fund ?? explorerTxUrl(chipnet, fund));
-    }
-    const vault = proof.vaultAddress;
-    if (vault) {
-      const el = $('proofVault');
-      el.setAttribute('data-full', vault);
-      el.setAttribute('title', vault);
-      el.textContent = shortAddress(vault);
-    }
-  } catch {
-    /* The static markup in the page already has the completed test network links. */
-  }
-};
-
-
-
-document.querySelectorAll('#tryStepper .step-head').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const n = Number((btn as HTMLElement).dataset.open);
-    if (!Number.isFinite(n) || n > readyStep()) return;
-    paintStepper(n);
-  });
 });
 
 $('demoFilmPlay').addEventListener('click', () => {
@@ -562,36 +532,121 @@ $('demoFilmPlay').addEventListener('click', () => {
   void video.play();
 });
 
-$('copyProofVault').addEventListener('click', async () => {
-  const el = $('proofVault');
-  const full = el.getAttribute('data-full') ?? el.getAttribute('title') ?? el.textContent ?? '';
-  if (full) await navigator.clipboard.writeText(full);
+$('openApp').addEventListener('click', (event) => {
+  event.preventDefault();
+  location.hash = '#app';
 });
 
-const revealSections = (): void => {
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const shot = new URLSearchParams(location.search).has('shot') || new URLSearchParams(location.search).has('state');
-  document.querySelectorAll('.reveal').forEach((el) => {
-    if (reduced || shot) {
-      el.classList.add('is-in');
-      return;
+const route = async (): Promise<void> => {
+  const hash = (location.hash.replace('#', '') || '').split('?')[0];
+  if (hash === 'demoFilm') {
+    showLanding();
+    $('demoFilm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (hash === '' || hash === 'landing' || hash === 'stage') {
+    showLanding();
+    return;
+  }
+  if (!stored && hash !== 'app' && hash !== 'create') {
+    showScreen('create');
+    return;
+  }
+  if (hash === 'app' || hash === 'home' || hash === 'dashboard') {
+    if (!stored) showScreen('create');
+    else if (!unlocked) showScreen('unlock');
+    else showScreen('dashboard');
+    if (stored) {
+      void drawAddressQr();
+      void refreshBalance();
+      startBalancePoll();
     }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          entry.target.classList.add('is-in');
-          io.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.3 },
-    );
-    io.observe(el);
-  });
+    return;
+  }
+  if (hash === 'create') {
+    showScreen('create');
+    return;
+  }
+  if (hash === 'unlock') {
+    showScreen(stored ? 'unlock' : 'create');
+    return;
+  }
+  if (!stored) {
+    showScreen('create');
+    return;
+  }
+  if (hash === 'receive') {
+    showScreen('receive');
+    void drawAddressQr();
+    void refreshBalance();
+    startBalancePoll();
+    return;
+  }
+  if (hash === 'send') {
+    showScreen('send');
+    void refreshBalance();
+    return;
+  }
+  if (hash === 'activity') {
+    showScreen('activity');
+    void refreshActivity();
+    return;
+  }
+  if (hash === 'details') {
+    showScreen('details');
+    paintVault();
+    return;
+  }
+  if (hash === 'success') {
+    showScreen('success');
+    return;
+  }
+  if (hash === 'error') {
+    showScreen('error');
+    return;
+  }
+  showScreen('dashboard');
 };
 
-if (stored && stored.rpId === currentRpId()) showVault(stored);
-refreshNetworkCopy();
-paintStepper();
-revealSections();
-void loadDemoProof();
+window.addEventListener('hashchange', () => void route());
+
+const bootShot = (): void => {
+  const screen = (params.get('screen') ?? '') as ScreenName | 'review' | '';
+  if (stored) paintVault();
+  if (screen === 'review') {
+    showScreen('send');
+    const modal = $('reviewModal') as HTMLDialogElement;
+    $('reviewTitle').textContent = 'Review this send';
+    $('reviewBody').innerHTML = '<dt>Network</dt><dd>test network</dd><dt>To</dt><dd>Preview only</dd><dt>Amount</dt><dd>0.0001 BCH</dd><dt>Fee</dt><dd>11000 units</dd>';
+    modal.showModal();
+    return;
+  }
+  if (screen === 'create' || (!stored && (screen === '' || screen === 'dashboard'))) {
+    // create shot can be shown even with a stored vault in the tester by forcing the screen
+  }
+  if (screen && APP_SCREENS.includes(screen)) {
+    if (screen === 'create') showScreen('create');
+    else if (!stored && screen !== 'error') showScreen('create');
+    else showScreen(screen);
+    if (screen === 'success') {
+      if (!$('successTxid').textContent) {
+        $('successAmount').textContent = '0.0001 BCH';
+        $('successTxid').textContent = 'Preview only';
+      }
+      if (!$('resultLinks').innerHTML.trim()) {
+        $('resultLinks').innerHTML = '<p class="hint">Preview only. A real payment id and explorer link appear after a send.</p>';
+      }
+    }
+    if (screen === 'error' && !$('errorText').textContent) {
+      $('errorText').textContent = 'The phone lock was cancelled, or it timed out. Try again.';
+    }
+    if (screen === 'receive') void drawAddressQr();
+    if (screen === 'activity') void refreshActivity();
+    return;
+  }
+  void route();
+};
+
+paintVault();
+if (shot) bootShot();
+else void route();
