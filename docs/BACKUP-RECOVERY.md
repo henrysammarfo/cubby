@@ -98,6 +98,12 @@ The passkey spend with a backup is at most about 10,160 bytes in total, still in
 
 The shared test helper (`test/fixtures.ts`, `status`) now also treats a clean stack that holds a false value as a failure, so no test can mistake a false result for a pass.
 
+## Chipnet run (not done yet)
+
+`scripts/recovery-chipnet.ts` does the live test with test coins only: it funds two coins into a box with a 1 block backup wait, spends one with the passkey at once, asks the node to accept the recovery spend before the coin confirms (it must refuse, which proves the node enforces the age), then sends the recovery spend after one confirmation and writes the txids to `submission/judge-evidence/backup-recovery-chipnet.json`.
+
+On 21 Nov 2026 at about 19:40 Accra time (UTC+0) it could not run. The project's chipnet test keys were empty, the Apecs faucet returned "fulcrum websocket error" twice, and the chip.bch.ninja faucet reported a payment (txid `1e563ff0ab79e514a549f7d5af646de0aecb5353d503597d07b2e5f7fda99e15`) that chipnet.imaginary.cash shows as unconfirmed, but that watchtower and bchexplorer had not indexed after 10 minutes. Once watchtower shows the coins, run `FUND_TXID=1e563ff0… npx tsx scripts/recovery-chipnet.ts`.
+
 ## In the app
 
 Settings, then "Backup wallet" (`/settings/backup`):
