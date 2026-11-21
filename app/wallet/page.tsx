@@ -38,7 +38,7 @@ function WalletInner() {
         </div>
       </header>
       <main className="body wallet">
-        {s.demo && <div className="demo-banner">Demo box. These payments are a real test network example, not a box on this phone.</div>}
+        {s.demo && <div className="demo-banner">This demo box is empty now because the proof spend already settled. It received 0.01016741 BCH and sent 0.01005741 BCH on the test network. Not a box on this phone.</div>}
         {searchOn && (
           <div className="field">
             <Search size={16} aria-hidden />
@@ -51,6 +51,7 @@ function WalletInner() {
               <div className="pc-lab">Total balance</div>
               <div className="pc-v">{ready ? <Money sats={sats!} /> : <span className="skel" style={{ display: 'inline-block', width: '8rem', height: '2.2rem' }} />}</div>
               {fiat !== null && <div className="pc-fiat">About {fmtFiat(fiat)} · CoinGecko</div>}
+              {s.demo && ready && sats === 0n && <div className="pc-fiat">Empty after the proof spend</div>}
               {price?.change24h != null && (
                 <div className={'pc-chg ' + (price.change24h >= 0 ? 'up' : 'dn')}>
                   {price.change24h >= 0 ? '+' : ''}{price.change24h.toFixed(2)}% today

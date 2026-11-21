@@ -21,8 +21,8 @@ export function ActivityRow({ tx, hrefBase = '/activity' }: { tx: ChainTx; hrefB
       <span className="logo">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/brand/bitcoin-cash-circle.svg" alt="" /></span>
       <span className="rn"><span className="nm">{title}</span><span className="sb">{sub}</span></span>
       <span className="px">
-        <span className={'p ' + (incoming ? 'up' : 'dn')}>{incoming ? '+' : '−'}{fmtBch(tx.satoshis)} BCH</span>
-        {fiat !== null && <span className="c">{fmtFiat(fiat)}</span>}
+        <span className={'p ' + (incoming ? 'up' : 'dn')}>{incoming ? '+' : '−'}{fmtBch(tx.satoshis)}</span>
+        <span className="c">{fiat !== null ? fmtFiat(fiat) : 'BCH'}</span>
       </span>
       <span className="chev2"><ChevronRight size={16} aria-hidden /></span>
     </Link>

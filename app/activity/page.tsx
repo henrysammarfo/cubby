@@ -34,7 +34,7 @@ function ActivityInner() {
     <AppShell screen="activity" tab="activity">
       <header className="nav"><div className="lt">Activity</div></header>
       <main className="body">
-        {s.demo && <div className="demo-banner">Demo box. These are real test network payments from the completed proof spend.</div>}
+        {s.demo && <div className="demo-banner">Real test network payments from the proof spend. The demo box is empty now because that spend already settled.</div>}
         <div className="chips" role="tablist" aria-label="Filter payments">
           {FILTERS.map(([id, label]) => (
             <button key={id} type="button" className={'chip' + (filter === id ? ' on' : '')} onClick={() => setFilter(id)} aria-pressed={filter === id}>{label}</button>

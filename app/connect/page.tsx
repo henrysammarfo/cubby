@@ -42,16 +42,11 @@ function ConnectInner() {
     <AppShell screen="connect" tab="wallet" noTabs>
       <BackNav href={'/wallet'} title="Connect a wallet" />
       <main className="body">
-        <p className="hint" style={{ textAlign: 'left' }}>Use WizardConnect, not the usual Scan button. In Paytaca, open Apps, then WizardConnect, then Scan.</p>
-        <ol className="steps">
-          <li><span className="n">1</span><span>Open Paytaca, Selene, or Cashonize on the test network.</span></li>
-          <li><span className="n">2</span><span>In Paytaca go to Apps, then WizardConnect, then Scan.</span></li>
-          <li><span className="n">3</span><span>Scan this code. If it hangs, tap New code.</span></li>
-        </ol>
+        <p className="hint" style={{ textAlign: 'left' }}>In Paytaca, open Apps, then WizardConnect, then Scan. The usual Scan button does not connect.</p>
         <div className="qr-card">
           {uri ? <div className="qr-wrap"><AddressQr value={uri} alt="Connection code" /></div> : <div className="skel" style={{ width: '14rem', height: '14rem' }} />}
           <p className={err ? 'errline' : 'hint'}>{err || status}</p>
-          <div style={{ display: 'flex', gap: '.5rem', width: '100%' }}>
+          <div className="pair">
             <button className="btn ghost big" type="button" onClick={() => void begin()}>New code</button>
             {uri && <button className="btn big" type="button" onClick={() => void copy(uri, 'Connection link copied')}><Copy size={16} aria-hidden />Copy link</button>}
           </div>
@@ -59,12 +54,17 @@ function ConnectInner() {
             <button className="btn ghost big" type="button" onClick={() => { void stopConnect(); setSession(null); setUri(''); setStatus('Disconnected.'); }}>Disconnect</button>
           )}
         </div>
+        <ol className="steps">
+          <li><span className="n">1</span><span>Open Paytaca, Selene, or Cashonize on the test network.</span></li>
+          <li><span className="n">2</span><span>In Paytaca, go to Apps, then WizardConnect, then Scan.</span></li>
+          <li><span className="n">3</span><span>If it hangs, tap New code for a fresh one.</span></li>
+        </ol>
         <div className="ghead"><b>Works with</b></div>
-        <section className="group">
-          <div className="cell"><span className="lft" style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/paytaca.png" alt="" width={28} height={28} />Paytaca</span></div>
-          <div className="cell"><span className="lft" style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/selene.svg" alt="" width={28} height={28} />Selene</span></div>
-          <div className="cell"><span className="lft" style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/cashonize.png" alt="" width={28} height={28} />Cashonize</span></div>
-        </section>
+        <div className="wallet-tiles">
+          <div className="wallet-tile">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/paytaca.png" alt="" width={36} height={36} /><b>Paytaca</b></div>
+          <div className="wallet-tile">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/selene.svg" alt="" width={36} height={36} /><b>Selene</b></div>
+          <div className="wallet-tile">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/wallets/cashonize.png" alt="" width={36} height={36} /><b>Cashonize</b></div>
+        </div>
       </main>
     </AppShell>
   );

@@ -8,6 +8,7 @@ const CHROME = '/usr/bin/google-chrome';
 
 const ROUTES: { name: string; path: string }[] = [
   { name: 'landing', path: '/' },
+  { name: 'film', path: '/film' },
   { name: 'welcome-splash', path: '/welcome?demo=1&step=splash' },
   { name: 'welcome-slides', path: '/welcome?demo=1&step=slides' },
   { name: 'welcome', path: '/welcome?demo=1&step=hello' },
@@ -41,8 +42,14 @@ const prepare = async (page: Page, name: string) => {
       v.style.display = 'none';
     });
   }).catch(() => undefined);
-  if (name === 'landing') {
-    await page.getByText('A box only your face').first().waitFor({ timeout: 15000 });
+  if (name === 'landing' || name === 'film') {
+    if (name === 'landing') {
+      await page.getByText('A box only your face').first().waitFor({ timeout: 15000 });
+    } else {
+      await page.getByText('The film').first().waitFor({ timeout: 15000 });
+    }
+    const videos = await page.locator('video').count();
+    if (videos > 0) throw new Error(`${name} mounted a <video> before play, which crashes WebKit`);
   }
   if (name === 'wallet') {
     await page.getByText('My box').first().waitFor({ timeout: 15000 });
@@ -106,6 +113,19 @@ const main = async () => {
   try {
     const safari = await webkit.launch();
     failed.push(...await walk(safari, 390, 844, 'webkit'));
+    // iPhone 15 landing proof (393 x 852)
+    const ctx15 = await safari.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, reducedMotion: 'reduce' });
+    const p15 = await ctx15.newPage();
+    try {
+      await p15.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await prepare(p15, 'landing');
+      await shot(p15, 'landing', 393, 'webkit');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(`fail webkit 393 landing: ${msg}`);
+      failed.push('landing@393/webkit');
+    }
+    await ctx15.close();
     await safari.close();
   } catch (e) {
     console.warn('webkit launch failed', e instanceof Error ? e.message : e);
@@ -113,7 +133,8 @@ const main = async () => {
   }
   if (failed.length) {
     console.error(`UI smoke finished with gaps: ${failed.join(', ')}`);
-    if (failed.some((f) => f.includes('chromium'))) process.exit(1);
+    const blocking = failed.some((f) => f.includes('chromium') || f.includes('landing@') && f.includes('webkit') || f === 'webkit-launch');
+    if (blocking) process.exit(1);
   }
   console.log(`UI smoke passed. Screenshots in ${OUT}`);
 };

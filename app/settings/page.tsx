@@ -5,6 +5,7 @@ import { AppShell, copy, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
 import { useSession } from '@/lib/client/session';
 import { shortAddr } from '@/lib/client/format';
+import { EMBER_TOKEN_ADDRESS } from '@/src/banner';
 
 function SettingsInner() {
   const s = useSession();
@@ -63,12 +64,24 @@ function SettingsInner() {
           <p className="hint" style={{ padding: '.75rem 1.1rem 1rem', textAlign: 'left' }}>A send from the box is a large payment, about 10 KB, and the fee is 1 unit per byte. A smaller deposit cannot cover the send.</p>
         </section>
 
-        <div className="ghead"><b>About</b></div>
+        <div className="ghead" id="about"><b>About</b></div>
         <section className="group">
           <Link className="cell" href={'/how-it-works' + suffix}><span className="lft"><span className="logo txt"><Info size={18} aria-hidden /></span><span className="ct">How it works</span></span><ChevronRight size={16} className="chev" aria-hidden /></Link>
           <Link className="cell" href="/terms"><span className="ct">Terms</span><ChevronRight size={16} className="chev" aria-hidden /></Link>
           <Link className="cell" href="/privacy"><span className="ct">Privacy</span><ChevronRight size={16} className="chev" aria-hidden /></Link>
+          <a className="cell" href="https://docs.google.com/presentation/d/1Yfuk9CJkf4U9M_WukcELhumWgj3Ak6345Ewy8hSp-Hk/edit?usp=sharing" target="_blank" rel="noreferrer"><span className="ct">Widget Factory intro</span><ChevronRight size={16} className="chev" aria-hidden /></a>
+          <a className="cell" href="https://github.com/henrysammarfo/cubby" target="_blank" rel="noreferrer"><span className="ct">Source code</span><ChevronRight size={16} className="chev" aria-hidden /></a>
           <div className="cell"><span className="ct">First commit</span><span className="cv">17 Nov 2026</span></div>
+        </section>
+        <div className="ghead"><b>Vote with EMBER 2026</b></div>
+        <section className="group">
+          <div className="cell" style={{ alignItems: 'flex-start' }}>
+            <span>
+              <span className="ct">EMBER address</span>
+              <span className="cs" style={{ display: 'block', overflowWrap: 'anywhere', whiteSpace: 'normal', marginTop: '.25rem' }}>{EMBER_TOKEN_ADDRESS}</span>
+            </span>
+            <button className="btn text" type="button" onClick={() => void copy(EMBER_TOKEN_ADDRESS, 'Address copied')}>Copy</button>
+          </div>
         </section>
       </main>
     </AppShell>

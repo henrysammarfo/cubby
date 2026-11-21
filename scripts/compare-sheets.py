@@ -5,11 +5,12 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 APEEX = Path('/workspace/bch/design/v3/refs/apeex')
+REFS = Path('/workspace/bch/design/v3/refs')
 SHOTS = Path('/workspace/bch/design/v3/shots')
 OUT = Path('/workspace/bch/design/v3/compare')
 OUT.mkdir(parents=True, exist_ok=True)
 
-# Cubby shot name -> (apeex file, side)
+# name, file, side ('left'/'right' = Apeex crop, 'file' = raw ref image), optional caption
 MAP = [
     ('welcome-splash', '01.jpg', 'left'),
     ('welcome-slides', '01.jpg', 'right'),
@@ -25,12 +26,12 @@ MAP = [
     ('send-confirm', '11.jpg', 'right'),
     ('success', '12.jpg', 'left'),
     ('receipt', '12.jpg', 'left'),
-    ('connect', '10.jpg', 'left'),
-    ('settings', '07.jpg', 'left'),
-    ('landing', None, None),
-    ('how', None, None),
-    ('terms', None, None),
-    ('privacy', None, None),
+    ('connect', 'connect/rainbow-home.png', 'file', 'Rainbow.me reference'),
+    ('settings', 'settings/phantom-face-id.png', 'file', 'Phantom Face ID help'),
+    ('landing', 'landing/phantom-home.png', 'file', 'Phantom.com reference'),
+    ('how', 'how-it-works/phantom-help.png', 'file', 'Phantom help reference'),
+    ('terms', 'terms/phantom-terms.png', 'file', 'Phantom.com Terms'),
+    ('privacy', 'privacy/phantom-privacy.png', 'file', 'Phantom.com Privacy'),
     ('allowance', '07.jpg', 'left'),
     ('id', '06.jpg', 'right'),
 ]
@@ -77,7 +78,7 @@ def font(size: int, bold=False):
             return ImageFont.truetype(p, size)
     return ImageFont.load_default()
 
-def sheet(name: str, apeex_file: str | None, side: str | None):
+def sheet(name: str, apeex_file: str | None, side: str | None, caption: str | None = None):
     cubby_path = SHOTS / f'{name}-chromium-390.png'
     if not cubby_path.exists():
         print('missing shot', name)
@@ -85,15 +86,22 @@ def sheet(name: str, apeex_file: str | None, side: str | None):
     cubby = Image.open(cubby_path).convert('RGB')
     target_h = 1400
     cubby = fit(cubby, target_h)
-    if apeex_file:
+    if apeex_file and side == 'file':
+        src = REFS / apeex_file
+        if not src.exists():
+            print('missing ref', src)
+            return
+        apeex = fit(Image.open(src).convert('RGB'), target_h)
+        cap_l = caption or 'Reference'
+    elif apeex_file:
         apeex = fit(crop_phone(APEEX / apeex_file, side or 'left'), target_h)
-        cap_l = 'Apeex reference'
+        cap_l = caption or 'Apeex reference'
     else:
         apeex = Image.new('RGB', cubby.size, '#EDEDEF')
         d = ImageDraw.Draw(apeex)
-        msg = 'No matching Apeex frame.\nCubby marketing / legal page.'
+        msg = 'No matching reference frame.'
         d.multiline_text((40, apeex.height // 2 - 40), msg, fill='#6B6B73', font=font(28), spacing=8)
-        cap_l = 'No Apeex frame'
+        cap_l = 'No reference'
     pad = 48
     gap = 48
     header = 110
@@ -112,8 +120,9 @@ def sheet(name: str, apeex_file: str | None, side: str | None):
     print('wrote', out)
 
 def main():
-    for name, ape, side in MAP:
-        sheet(name, ape, side)
+    for row in MAP:
+        name, ape, side, *rest = row
+        sheet(name, ape, side, rest[0] if rest else None)
 
 if __name__ == '__main__':
     main()

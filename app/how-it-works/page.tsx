@@ -13,12 +13,18 @@ export default function HowItWorks() {
         <Link className="btn" href="/welcome">Open the app</Link>
       </header>
       <article className="lp-doc">
+        <nav className="doc-links">
+          <Link href="/how-it-works">Guide</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/privacy">Privacy</Link>
+        </nav>
+        <p className="upd">A short guide</p>
         <h1>How it works</h1>
         <p>Cubby is a box for Bitcoin Cash that only your face or fingerprint can open. The chain itself checks that approval.</p>
         <ol className="lp-how-steps" style={{ marginTop: '2rem' }}>
           <li><span className="n">01</span><div><b>Create your box</b><span>On this website, approve with Face ID or your fingerprint. The box address is created on your device and stays tied to this site.</span></div></li>
           <li><span className="n">02</span><div><b>Receive coins</b><span>Share the code, copy the address, or connect Paytaca, Selene, or Cashonize. On the test network, get test coins from the faucet link in the app.</span></div></li>
-          <li><span className="n">03</span><div><b>Send with your face</b><span>Enter an amount and an address, review the payment, hold to confirm, then approve with your phone lock. You get a receipt with a payment id you can open on the explorer.</span></div></li>
+          <li><span className="n">03</span><div><b>Send with your face</b><span>Enter an amount and an address, review the payment, then approve with your face or fingerprint. You get a receipt with a payment id you can open on the explorer.</span></div></li>
         </ol>
         <h2>What you should know</h2>
         <p>Test coins have no value. Sending on the main network stays off until it is approved.</p>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, BadgeCheck, Fingerprint, Play } from 'lucide-react';
 import './landing.css';
+import { FilmPlayer } from '@/ui/Film';
 
 export default function Landing() {
   return (
@@ -26,7 +27,7 @@ export default function Landing() {
           <p className="lp-lead">Lock Bitcoin Cash with Face ID or your fingerprint. The chain checks the approval itself. No seed phrase to write down.</p>
           <div className="lp-ctas">
             <Link className="btn big" href="/welcome">Open the app</Link>
-            <a className="btn ghost big" href="#film"><Play size={18} aria-hidden />Watch the film</a>
+            <Link className="btn ghost big" href="/film"><Play size={18} aria-hidden />Watch the film</Link>
           </div>
           <ul className="lp-trust">
             <li><BadgeCheck size={16} aria-hidden />No seed phrase</li>
@@ -47,17 +48,16 @@ export default function Landing() {
         <ol className="lp-how-steps">
           <li><span className="n">01</span><div><b>Create your box</b><span>Use your face or fingerprint on this website. The box address is yours.</span></div></li>
           <li><span className="n">02</span><div><b>Receive coins</b><span>Share the code, or connect a wallet you already use, and send test coins in.</span></div></li>
-          <li><span className="n">03</span><div><b>Send with your face</b><span>Review the payment, hold to confirm, then approve with your phone lock.</span></div></li>
+          <li><span className="n">03</span><div><b>Send with your face</b><span>Review the payment, then approve with your face or fingerprint.</span></div></li>
         </ol>
       </section>
 
       <section className="lp-film" id="film">
         <h2>Watch the 20 second film.</h2>
         <div className="film">
-          <video controls playsInline preload="metadata" poster="/mascot/cubby-hero-1280.jpg" src="/cubby-demo.mp4">
-            Your browser cannot play this film. Open the app instead.
-          </video>
+          <FilmPlayer />
         </div>
+        <p className="film-alt"><Link href="/film">Open the film on its own page</Link></p>
       </section>
 
       <section className="lp-band">
