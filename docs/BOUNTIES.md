@@ -6,7 +6,7 @@ Sources checked 21 November 2026, Accra (UTC+0):
 - Official bounties: https://bchblaze.cash/bounties/
 - Mainnet-track rules as published for BLAZE 2026 (live demo, WizardConnect, Widget Factory template, banner CashTokens address, originality, Telegram confirmation, roll call, and at least one mainnet send feature). Jeremy’s Telegram enforcement notes are treated as binding for the same items (banner address, WizardConnect not only WalletConnect v2, no hanging connect, gap-limit scan).
 
-Cubby is entered on the **Mainnet track**. It does not enter the Media track. Sponsor bounties are listed honestly; Cubby does not currently qualify for them.
+Cubby is entered on the **Mainnet track**. It does not enter the Media track. Sponsor bounty work is on the `bounties` branch; see `docs/BOUNTY-PLAN.md` for exact status per bounty.
 
 ## Mainnet track
 
@@ -36,14 +36,11 @@ On-chain proof that this script ran: chipnet spend `2ac70a7cacf837471ae8997cbf45
 
 ## Sponsor bounties (https://bchblaze.cash/bounties/)
 
-| Bounty | Sponsor / prize | Status | Why |
-|---|---|---|---|
-| Stablecoin Bridge | ParyonUSD, $750 PUSD | **Not met** | Requires bridging or swapping stables into and out of BCH (for example USDC on another chain ↔ PUSD). Cubby does not bridge tokens. |
-| Build with XO | General Protocols, 0.3 BCH × 10 | **Not met** | Requires a novel XO template, a chipnet or mainnet invitation inspectable in the XO debug tool, and personally written XO feedback. Cubby does not use XO. |
-| Migrate to XO | General Protocols, 1 BCH × 5 | **Not met** | Requires migrating existing functionality to XO and linking old and new projects. Not done. |
-| Decentralized Identity | Paytaca, $500 PUSD | **Not met** | Requires a non-custodial cryptographic binding of a BCH identity and a Nostr identity, plus decentralized discovery and challenge-response. A passkey box is not a BCH↔Nostr identity link. |
-| Best SolidCash Application | 3.5 BCH (2 / 1 / 0.5) | **Not met** | Requires a Solidity contract compiled with SolidCash, tested with solidhat, and runnable on mainnet. Cubby’s contract is CashAssembly / CashVM, not SolidCash. |
-| FoldingCash pull-based claims | 26M FLDCH | **Not met** | Requires an on-chain Merkle-root reward pool, proof verification, double-claim prevention, and a chipnet demo. Out of scope. |
+See `docs/BOUNTY-PLAN.md`. In short:
+- SolidCash: partly met (chipnet done, mainnet pending Henry).
+- XO Migrate and Build: partly met (template and tests done, chipnet invitation and personal feedback pending).
+- Paytaca identity: mostly met (chipnet done, public relay publish and UI pending).
+- FoldingCash and Stablecoin Bridge: not met.
 
 ## After the deadline
 

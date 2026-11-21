@@ -1,0 +1,47 @@
+{
+  "network": "chipnet",
+  "anchorUnlockingBytes": 9536,
+  "anchor": "09a08b42d23f4cf4525fe616cdc65ebb98053f4654a19f15bb7fc7d794cd4361",
+  "npub": "npub104530m4t6vyvw3qj9uhq0n5ny33t0wfn03hk5hr7f27zvxtzt42qs0tnqe",
+  "vaultAddress": "bchtest:pddg8k4gwd9aneanr30rx746h77c0kc7as3sq5g2yh0zme23t5a4uvncz4jlw",
+  "event": {
+    "kind": 10011,
+    "created_at": 1795283263,
+    "content": "",
+    "tags": [
+      [
+        "i",
+        "cubby-chipnet:pddg8k4gwd9aneanr30rx746h77c0kc7as3sq5g2yh0zme23t5a4uvncz4jlw",
+        "09a08b42d23f4cf4525fe616cdc65ebb98053f4654a19f15bb7fc7d794cd4361"
+      ],
+      [
+        "cubby",
+        "v1",
+        "chipnet",
+        "04bd0cd4a7c032f2daf7288a1bda8baeef09c46d234ead4ac4b62fa26c940107516e842c25a28e4f37d6266d8e58c87751d041ac0af01a31f20dccfa93b2d1259d",
+        "bounties.cubby.test"
+      ],
+      [
+        "cubby-passkey",
+        "mTrSSuEaYr0MLORHrtAdt1aCHH_kcecWOhfN47fTpO8FAAAAAQ",
+        "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiR1hTU3JCYjg0S1VVTFVmNzRsb2lsRVVJcjdhMk9uN2hVOGJ1OXFNU3YyUSIsIm9yaWdpbiI6Imh0dHBzOi8vYm91bnRpZXMuY3ViYnkudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+        "MEQCIQDiyoljKmwfwr4WHvLXs4a1rxxXAyPYSWydlWXyHEziFwIfP0phw9Ryh0-27FESRU8lyImjAk0o9Wgsr4-TSZBRfA"
+      ]
+    ],
+    "pubkey": "7d6917eeabd308c744122f2e07ce932462b7b9337c6f6a5c7e4abc2619625d54",
+    "id": "b8bc39fbd77dc3cf87645a73b2f89385ab6db0b5c0afff7a051d45dc08422bbc",
+    "sig": "6d0ce76294e540c49e87a0054d1b71ad0175dc2915bb0452bd42de607d2e4483528aae6d68849ee14a82d1945081261aeb85f0b81a2f2b4e5a62d4def872ca90"
+  },
+  "relay": "local mini relay (ws://127.0.0.1:7447)",
+  "discovered": {
+    "vaultAddress": "bchtest:pddg8k4gwd9aneanr30rx746h77c0kc7as3sq5g2yh0zme23t5a4uvncz4jlw",
+    "anchor": "verified"
+  },
+  "login": {
+    "factors": [
+      "nostr",
+      "passkey"
+    ]
+  },
+  "pay": "6c6972a9abe4b8377ce10a3313c8298be1b16a84160f4074bc03d1ff49b33fc5"
+}

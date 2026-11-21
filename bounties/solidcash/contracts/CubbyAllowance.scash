@@ -1,0 +1,65 @@
+pragma solidcash ^0.51.0;
+
+// Cubby Allowance: a pocket money jar owned by a Cubby passkey vault.
+//
+// - Anyone can pull the allowance to the child once per period. The coin's own age
+//   (relative timelock, OP_CHECKSEQUENCEVERIFY) is the clock, so no oracle and no server.
+// - The full allowance is always paid (or everything left, if less), so nobody can grief
+//   the child by pulling one satoshi and restarting the clock.
+// - The owner manages the jar by spending their Cubby vault in the same transaction.
+//   The Cubby vault checks a passkey signature over every output of the transaction on
+//   chain, so co-spending it is the owner's approval of exactly what happens next.
+
+uint constant MINER_FEE = 1000;
+uint constant DUST = 1000;
+
+// Returns true if any input of the transaction is locked by `lock`.
+function hasInputLockedBy(bytes lock) view returns (bool) {
+    bool found = false;
+    for (int i = 0; i < tx.inputs.length; i++) {
+        if (tx.inputs[i].lockingBytecode == lock) {
+            found = true;
+        }
+    }
+    return found;
+}
+
+contract CubbyAllowance(bytes ownerVaultLock, bytes childLock, uint allowance, uint periodBlocks) {
+    modifier onlyOwnerVault() {
+        require(hasInputLockedBy(ownerVaultLock), "owner vault must approve");
+        _;
+    }
+
+    // The child (or anyone on the child's behalf) pulls one period of allowance.
+    function claim() {
+        require(this.activeInputIndex == 0, "jar must be input 0");
+        require(tx.inputs.length == 1, "jar pays alone");
+        require(this.age >= periodBlocks, "too early");
+
+        uint jar = uint(tx.inputs[0].value);
+        require(jar > MINER_FEE + DUST, "jar is empty");
+        uint pay = allowance;
+        if (jar < allowance + MINER_FEE + DUST) {
+            pay = jar - MINER_FEE;
+        }
+
+        require(tx.outputs[0].lockingBytecode == childLock, "pays the child");
+        require(uint(tx.outputs[0].value) == pay, "exact allowance");
+        require(tx.outputs[0].tokenCategory == 0x, "no tokens");
+
+        uint rest = jar - pay - MINER_FEE;
+        if (rest >= DUST) {
+            require(tx.outputs.length == 2, "two outputs");
+            require(tx.outputs[1].lockingBytecode == tx.inputs[0].lockingBytecode, "change back to jar");
+            require(uint(tx.outputs[1].value) == rest, "exact change");
+            require(tx.outputs[1].tokenCategory == 0x, "no tokens");
+        } else {
+            require(tx.outputs.length == 1, "one output");
+        }
+    }
+
+    // Top up, change, or close the jar. The owner's Cubby vault approves every output.
+    function manage() onlyOwnerVault {
+        require(true);
+    }
+}

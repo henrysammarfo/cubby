@@ -8,10 +8,12 @@
     "build": "tsc --noEmit -p tsconfig.src.json && vitest run && next build",
     "build:web": "next build",
     "dev": "next dev --port 4173",
+    "start": "next start --port 4173",
     "size": "tsx scripts/report.ts",
     "chipnet-e2e": "tsx scripts/chipnet-e2e.ts",
     "ui-smoke": "tsx scripts/ui-smoke.ts",
-    "start": "next start --port 4173"
+    "bounties:allowance": "tsx scripts/bounties/allowance-chipnet.ts",
+    "bounties:identity": "tsx scripts/bounties/identity-chipnet.ts"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -27,6 +29,7 @@
     "buffer": "6.0.3",
     "lucide-react": "^0.544.0",
     "next": "^15.5.29",
+    "nostr-tools": "^2.26.1",
     "qrcode": "1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -38,7 +41,8 @@
     "tsx": "4.23.15",
     "typescript": "^6.0.3",
     "vite": "8.3.8",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "ws": "^8.23.0"
   },
   "private": true
 }

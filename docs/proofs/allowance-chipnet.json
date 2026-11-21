@@ -1,0 +1,15 @@
+{
+  "network": "chipnet",
+  "notes": [],
+  "vaultAddress": "bchtest:pddg8k4gwd9aneanr30rx746h77c0kc7as3sq5g2yh0zme23t5a4uvncz4jlw",
+  "jarAddress": "bchtest:p0x03lqjw62phwelnpx7760h7va97q8vwqsq3ngz695w5z2aylz36ctk7hgxt",
+  "childAddress": "bchtest:qp4kjxg9v6gettvg6r3rm52yue73j7g35cwm4mzg5k",
+  "params": {
+    "allowance": "20000",
+    "periodBlocks": "1"
+  },
+  "fund": "a5dc514c8a492f9329e96711b5a835e234413909a4f308bd777f703e5d4de67b",
+  "manageUnlockingBytes": 9632,
+  "manage": "1f1eacdbc748df4c049aab2c536b37653e04558cb1da35c376f8483d17e21cc6",
+  "claim": "62626f49b6c2151374a0160c9ee549e81a52b18187f07e061a7b765c770ef517"
+}
