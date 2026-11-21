@@ -205,6 +205,13 @@ html .nav{padding-top:calc(var(--sat) + .35rem)}
 .qr-wrap img.qr{width:100%;height:100%;display:block}
 .qr-wrap .mid{position:absolute;left:50%;top:50%;width:3.4rem;height:3.4rem;margin:-1.7rem 0 0 -1.7rem;border-radius:999px;background:#fff;box-shadow:0 0 0 6px #fff;display:grid;place-items:center;overflow:hidden}
 .qr-wrap .mid img{width:2.5rem;height:2.5rem}
+.qr-tap{border:0;padding:0;background:none;cursor:pointer;border-radius:14px;transition:transform .15s ease,box-shadow .2s ease}
+.qr-tap:active{transform:scale(.98)}
+.qr-tap:focus-visible{outline:3px solid var(--accent,#5b2dff);outline-offset:4px}
+.qr-tap.copied{box-shadow:0 0 0 3px #22c55e}
+.qr-wrap .mid.hat{border-radius:12px}
+.qr-tip{margin-top:-.25rem}
+.home-tools a.wiz img{width:1.35rem;height:1.35rem}
 .addr-line{text-align:center;max-width:22rem}
 .addr-line code{display:inline-block;max-width:100%;overflow-wrap:anywhere;word-break:break-all;font:500 .95rem/1.5 var(--font)}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;width:100%}

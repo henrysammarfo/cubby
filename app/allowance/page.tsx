@@ -8,7 +8,8 @@ import { Gate } from '@/ui/Gate';
 import { useSession } from '@/lib/client/session';
 import { ALLOWANCE_PROOF, periodLabel } from '@/lib/proofs';
 import { explorerUrl, fmtBch, shortAddr } from '@/lib/client/format';
-import { addressToLocking, assertNetworkAddress, lockingToAddress } from '@/src/address';
+import { addressToLocking, lockingToAddress } from '@/src/address';
+import { checkSendAddress } from '@/src/address-check';
 import { attachManage, buildClaim, buildJar, unsignedManage, manageChallenge } from '@/src/bounties/allowance';
 import { broadcastTransaction, utxosFromApi } from '@/src/chain';
 import { explainWebAuthnError, requestAssertion, vaultFromStored } from '@/web/passkey';
@@ -92,11 +93,12 @@ function AllowanceInner() {
     setErr(null);
     if (!s.vault || !s.address) { setErr('Create your box first, then start a jar.'); return; }
     try {
-      assertNetworkAddress(child.trim(), s.network);
+      const childCheck = checkSendAddress(child, s.network, s.address);
+      if (!childCheck.ok) { setErr(childCheck.reason); return; }
       const amount = BigInt(allowance.replace(/\\s/g, '') || '0');
       const jar = buildJar({
         ownerVaultLock: addressToLocking(s.address),
-        childLock: addressToLocking(child.trim()),
+        childLock: childCheck.lockingBytecode,
         allowance: amount,
         periodBlocks: period,
       });
