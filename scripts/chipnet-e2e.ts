@@ -1,13 +1,19 @@
 /**
- * Chipnet end to end: faucet two test keys, fund one vault, spend it with a
- * software passkey (byte-exact WebAuthn), broadcast both transactions.
+ * Chipnet end to end: use already-funded test keys (or a faucet), fund one vault,
+ * spend it with a software passkey (byte-exact WebAuthn), broadcast both transactions.
  * Secrets stay in .secrets/ (gitignored). This script never spends mainnet coins.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { decodePrivateKeyWif, encodePrivateKeyWif, generatePrivateKey, sha256, utf8ToBin } from '@bitauth/libauth';
 import { NETWORKS } from '../src/network.js';
 import { addressToLocking, lockingToAddress, p2pkhAddressFromPrivateKey } from '../src/address.js';
-import { broadcastTransaction, getTransaction, utxosFromTransaction, utxosFromWatchtower } from '../src/chain.js';
+import {
+  broadcastTransaction,
+  getTransaction,
+  utxosFromTransaction,
+  utxosFromWatchtower,
+  type ChainUtxo,
+} from '../src/chain.js';
 import { buildP2pkhSend } from '../src/p2pkh-send.js';
 import { attachPasskeyUnlock, buildUnsignedVaultSpend, challengeForSpend } from '../src/vault-spend.js';
 import { buildVault, type VaultParams } from '../src/covenant.js';
@@ -18,6 +24,7 @@ import { claimNinja } from './ninja-faucet.js';
 const network = NETWORKS.chipnet;
 const RP_ID = 'chipnet-e2e.cubby.test';
 const SECRETS_PATH = '/workspace/bch/cubby/.secrets/chipnet-e2e.json';
+const KNOWN_FAUCET = process.env.FAUCET_TXID ?? '0f44dde17217258290fd77d4a926cde5d654503d49080fac811cfeeaa34bb149';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const decodeWif = (wif: string): Uint8Array => {
@@ -60,7 +67,7 @@ const loadOrCreateKeys = async (): Promise<{ keyA: Uint8Array; keyB: Uint8Array 
   return { keyA, keyB };
 };
 
-const waitForTx = async (txid: string, attempts = 30): Promise<void> => {
+const waitForTx = async (txid: string, attempts = 45): Promise<void> => {
   let last = '';
   for (let i = 0; i < attempts; i++) {
     try {
@@ -74,19 +81,33 @@ const waitForTx = async (txid: string, attempts = 30): Promise<void> => {
   throw new Error(`Transaction ${txid} did not appear on the explorer: ${last}`);
 };
 
-const waitForUtxo = async (txid: string, address: string, attempts = 20) => {
-  for (let i = 0; i < attempts; i++) {
-    const utxos = await utxosFromTransaction(network, txid, address);
-    if (utxos.length > 0) return utxos;
-    await sleep(2000);
+const collectUtxos = async (address: string, hintTxids: string[] = []): Promise<ChainUtxo[]> => {
+  const byKey = new Map<string, ChainUtxo>();
+  try {
+    for (const utxo of await utxosFromWatchtower(network, address)) {
+      byKey.set(`${utxo.txid}:${utxo.vout}`, utxo);
+    }
+  } catch (error) {
+    console.log(`Watchtower utxo lookup failed (${error instanceof Error ? error.message : String(error)}). Using the explorer.`);
   }
-  throw new Error(`No unspent output for ${address} in ${txid} yet.`);
+  for (const txid of hintTxids) {
+    if (!/^[0-9a-f]{64}$/i.test(txid)) continue;
+    try {
+      for (const utxo of await utxosFromTransaction(network, txid, address)) {
+        byKey.set(`${utxo.txid}:${utxo.vout}`, utxo);
+      }
+    } catch (error) {
+      console.log(`Explorer does not yet have ${txid} for ${address}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return [...byKey.values()];
 };
 
-const waitForAddressFunds = async (address: string, minSats: bigint, attempts = 30) => {
+const waitForFunds = async (address: string, minSats: bigint, hintTxids: string[], attempts = 45): Promise<ChainUtxo[]> => {
   let lastTotal = 0n;
+  let utxos: ChainUtxo[] = [];
   for (let i = 0; i < attempts; i++) {
-    const utxos = await utxosFromWatchtower(network, address);
+    utxos = await collectUtxos(address, hintTxids);
     lastTotal = utxos.reduce((s, u) => s + u.satoshis, 0n);
     if (lastTotal >= minSats) return utxos;
     await sleep(2000);
@@ -127,12 +148,11 @@ const fundFromApecs = async (addrA: string, addrB: string, keyB: Uint8Array): Pr
   const claimB = await claimWithRetry(addrB, 'B');
   await waitForTx(claimA.txid);
   await waitForTx(claimB.txid);
-  const utxosB = await waitForUtxo(claimB.txid, addrB);
+  const utxosB = await waitForFunds(addrB, 1n, [claimB.txid], 30);
   const consolidate = buildP2pkhSend(keyB, utxosB, addressToLocking(addrA), 'all', addressToLocking(addrB));
   const consolidateId = await broadcastTransaction(network, consolidate.hex);
   console.log(`Consolidate B to A: ${consolidateId}`);
   await waitForTx(consolidateId);
-  await waitForUtxo(claimA.txid, addrA);
   return consolidateId;
 };
 
@@ -144,39 +164,43 @@ const main = async () => {
   console.log(`Key B address: ${addrB}`);
 
   const needed = network.recommendedFundSats;
-  let faucetTxid = '';
+  let faucetTxid = KNOWN_FAUCET;
   let faucetSource = 'existing';
-  const already = await utxosFromWatchtower(network, addrA);
-  const alreadyTotal = already.reduce((s, u) => s + u.satoshis, 0n);
+
+  let utxosA = await collectUtxos(addrA, [KNOWN_FAUCET]);
+  let alreadyTotal = utxosA.reduce((s, u) => s + u.satoshis, 0n);
+  if (alreadyTotal < needed) {
+    console.log(`Waiting for faucet payment ${KNOWN_FAUCET} to appear (currently ${alreadyTotal} units).`);
+    await waitForTx(KNOWN_FAUCET, 45);
+    utxosA = await waitForFunds(addrA, needed, [KNOWN_FAUCET], 45);
+    alreadyTotal = utxosA.reduce((s, u) => s + u.satoshis, 0n);
+  }
+
   if (alreadyTotal >= needed) {
-    console.log(`Address A already has ${alreadyTotal} units. Skipping faucet.`);
-    faucetTxid = already[0]?.txid ?? 'existing';
-  } else if (process.env.SKIP_NINJA !== '1') {
+    console.log(`Address A already has ${alreadyTotal} units. Skipping faucet claims.`);
+    faucetTxid = utxosA.find((u) => u.txid === KNOWN_FAUCET)?.txid ?? utxosA[0]?.txid ?? KNOWN_FAUCET;
+    faucetSource = faucetTxid === KNOWN_FAUCET ? 'googol' : 'existing';
+  } else if (process.env.SKIP_NINJA === '1') {
+    console.log('Skipping Ninja (SKIP_NINJA=1). Using Apecs drips.');
+    faucetSource = 'apecs';
+    faucetTxid = await fundFromApecs(addrA, addrB, keyB);
+    utxosA = await waitForFunds(addrA, needed, [KNOWN_FAUCET, faucetTxid], 45);
+  } else {
     try {
       const ninja = await claimNinja(addrA, 25_000);
       console.log(`Ninja faucet claimed 25000 units, reported txid ${ninja.txid}`);
       faucetTxid = ninja.txid;
       faucetSource = 'ninja';
-      try {
-        await waitForAddressFunds(addrA, needed, 20);
-      } catch {
-        console.log('Ninja txid did not appear on Watchtower. Falling back to Apecs drips.');
-        faucetSource = 'apecs';
-        faucetTxid = await fundFromApecs(addrA, addrB, keyB);
-      }
+      utxosA = await waitForFunds(addrA, needed, [KNOWN_FAUCET, ninja.txid], 20);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.log(`Ninja faucet failed (${message.slice(0, 200)}). Falling back to two Apecs drips.`);
+      console.log(`Ninja faucet failed or did not appear (${message.slice(0, 200)}). Falling back to two Apecs drips.`);
       faucetSource = 'apecs';
       faucetTxid = await fundFromApecs(addrA, addrB, keyB);
+      utxosA = await waitForFunds(addrA, needed, [KNOWN_FAUCET, faucetTxid], 45);
     }
-  } else {
-    console.log('Skipping Ninja (SKIP_NINJA=1). Using Apecs drips.');
-    faucetSource = 'apecs';
-    faucetTxid = await fundFromApecs(addrA, addrB, keyB);
   }
 
-  const utxosA = await waitForAddressFunds(addrA, needed, 30);
   console.log(`Address A funded with ${utxosA.reduce((s, u) => s + u.satoshis, 0n)} units across ${utxosA.length} output(s).`);
 
   const passkey = await createSoftPasskey(RP_ID);
@@ -189,7 +213,7 @@ const main = async () => {
   const fundId = await broadcastTransaction(network, fund.hex);
   console.log(`Fund vault from A: ${fundId} (local ${fund.txid})`);
   await waitForTx(fundId);
-  const vaultUtxos = await waitForAddressFunds(vaultAddress, network.vaultSpendFeeSats + 546n, 30);
+  const vaultUtxos = await waitForFunds(vaultAddress, network.vaultSpendFeeSats + 546n, [fundId], 45);
   const combined = vaultUtxos.reduce((s, u) => s + u.satoshis, 0n);
   console.log(`Vault now has ${vaultUtxos.length} output(s) totalling ${combined} units.`);
   const chosen = vaultUtxos[0];
@@ -231,11 +255,19 @@ const main = async () => {
     JSON.stringify(
       {
         network: 'chipnet',
+        networkLabel: 'Test network',
         vaultAddress,
+        faucetTxid,
         fundTxid: fundId,
         spendTxid: spendId,
-        explorer: report.explorer,
-        note: 'Completed test spend from the chipnet end to end script. This is a new project; there is no earlier demo or repo.',
+        fund: fundId,
+        spend: spendId,
+        explorer: {
+          faucet: `https://chipnet.bchexplorer.info/tx/${faucetTxid}`,
+          fund: `https://chipnet.bchexplorer.info/tx/${fundId}`,
+          spend: `https://chipnet.bchexplorer.info/tx/${spendId}`,
+        },
+        note: 'Completed test network spend from the chipnet end to end script. This is a new project; there is no earlier demo or repo.',
       },
       null,
       2,

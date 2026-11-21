@@ -358,11 +358,30 @@ const loadDemoProof = async (): Promise<void> => {
   try {
     const response = await fetch('/demo-proof.json', { cache: 'no-store' });
     if (!response.ok) return;
-    const proof = (await response.json()) as { spend?: string; fund?: string; vaultAddress?: string };
-    if (!proof.spend) return;
-    host.innerHTML = `<p>A real test network spend is already on the chain. <a href="${explorerTxUrl(getNetwork('chipnet'), proof.spend)}" target="_blank" rel="noreferrer">Open the completed spend</a>${proof.fund ? ` · <a href="${explorerTxUrl(getNetwork('chipnet'), proof.fund)}" target="_blank" rel="noreferrer">Open the deposit</a>` : ''}.</p>`;
+    const proof = (await response.json()) as {
+      spend?: string;
+      spendTxid?: string;
+      fund?: string;
+      fundTxid?: string;
+      vaultAddress?: string;
+      explorer?: { spend?: string; fund?: string };
+    };
+    const spend = proof.spendTxid ?? proof.spend;
+    const fund = proof.fundTxid ?? proof.fund;
+    if (!spend) return;
+    const chipnet = getNetwork('chipnet');
+    const spendUrl = proof.explorer?.spend ?? explorerTxUrl(chipnet, spend);
+    const fundUrl = fund ? (proof.explorer?.fund ?? explorerTxUrl(chipnet, fund)) : '';
+    const vault = proof.vaultAddress ?? '';
+    host.innerHTML = `<p><strong>Completed test network spend</strong> (chipnet, these coins have no value)</p>
+      <p>A real deposit and a passkey-approved send are already on the test network, so you can inspect them without setting anything up.</p>
+      <ul>
+        <li><a id="proofSpend" href="${spendUrl}" target="_blank" rel="noreferrer">Open the test network spend</a></li>
+        ${fundUrl ? `<li><a id="proofFund" href="${fundUrl}" target="_blank" rel="noreferrer">Open the test network deposit</a></li>` : ''}
+        ${vault ? `<li>Test network box address: <code id="proofVault" class="mono">${vault}</code></li>` : ''}
+      </ul>`;
   } catch {
-    /* optional */
+    /* The static markup in the page already has the completed test network links. */
   }
 };
 

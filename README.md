@@ -1,6 +1,6 @@
 # Cubby
 
-**Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (20/20 unit tests). The live demo app is built. The repository is still private. No mainnet coins have been spent. An automated chipnet deposit and passkey spend is waiting on a working faucet drip (see Limitations).
+**Status: private work in progress for BCH BLAZE 2026.** The signing gate is tested (20/20 unit tests). The live demo is deployed. A real chipnet vault deposit and passkey spend are on the test network (see links below). The repository is still private. No mainnet coins have been spent.
 
 Cubby is a new project. The repository was created on 17 November 2026. There is no earlier demo and no earlier repository.
 
@@ -26,6 +26,17 @@ The live demo is at https://cubby-liart-six.vercel.app. Open it on a phone or la
 6. Open the payment on the explorer.
 
 Main network sending stays off until Henry approves the funding address and the exact number of satoshis (20 000 satoshis, which is 0.0002 BCH, is the planned amount).
+
+
+## Completed test network spend
+
+These are real chipnet transactions (coins have no value). They were built by the end-to-end script using a software passkey that produces a byte-exact WebAuthn assertion.
+
+- Deposit into the box: https://chipnet.bchexplorer.info/tx/8f9e1dd30944559c095e43ab911551dd14acafe32abfa199d58238cc0948f5e7
+- Passkey spend: https://chipnet.bchexplorer.info/tx/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993
+- Box address: `bchtest:pwh5d9m9akqawmr4aczes0auk426kkftpsthn99tqex3xdatjc7zsdcfzwewk`
+
+Also listed on the live demo hero as “Completed test network spend”.
 
 ## What the covenant checks (one input, no helper outputs)
 
@@ -83,7 +94,7 @@ npx tsx scripts/chipnet-e2e.ts   # faucet, fund, software passkey spend on chipn
 - **Locktime** must be below 2^31 (fits a 4-byte script number), true for all block heights and for timestamps until 2038.
 - **Real devices** (iPhone, Android, Windows) still need a check on the live HTTPS origin; the automated chipnet run uses a software P-256 authenticator that produces byte-exact WebAuthn assertions.
 - **The box is bound to one website address** (`rpIdHash` is fixed in the redeem script).
-- **Chipnet faucet access from this build environment is currently broken.** The Ninja faucet returns a "submitted" payment id that explorers and Watchtower never see. The Apecs faucet accepts the proof of work and then fails with a Fulcrum websocket 502. The Googol faucet works on chipnet but requires a captcha, which is not automated. The demo can be funded by sending at least 20 000 chipnet units to the vault address shown in the app, after which a passkey spend can be broadcast.
+- **Chipnet faucet APIs from this build environment are unreliable.** Ninja often returns a submitted payment id that never appears, and Apecs has been failing with Fulcrum 502s. The completed test spend below was funded by a Googol chipnet drip to a local test key, then deposited and spent by the end-to-end script.
 
 ## Credit
 
