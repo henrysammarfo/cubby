@@ -10,7 +10,7 @@ Cubby stays one product. Each bounty feature is a small add-on to the passkey va
 | Best SolidCash Application (mainnet_pat) | 3.5 BCH (2 / 1 / 0.5) | Yes | Medium | **Partly met.** Contract, SolidHat tests and a chipnet lifecycle are done. Mainnet run not done (needs Henry's approval and funds). |
 | Migrate to XO (General Protocols) | 1 BCH × 5 | Yes | Medium | **Partly met.** Template, follow-ups and offline XO/VM tests are done. Chipnet invitation run blocked by box network. Feedback must be Henry's own words. |
 | Build with XO (General Protocols) | 0.3 BCH × 10 | Yes (same template) | Low on top of Migrate | **Partly met**, same gaps as Migrate. |
-| Decentralized Identity (Paytaca) | $500 PUSD | Yes | Medium | **Mostly met** in code and on chipnet: creation, two-key binding, discovery, verify, challenge login, pay by identity. Not yet published to public Nostr relays (posting needs Henry). No UI screen yet. |
+| Decentralized Identity (Paytaca) | $500 PUSD | Yes | Medium | **Mostly met** in code and on chipnet: creation, two-key binding, discovery, verify, challenge login, pay by identity. The `/id` screen shows the chipnet proof (npub, verified badge, pay by identity). Not yet published to public Nostr relays (posting needs Henry). |
 | FoldingCash pull-based claims | 26M FLDCH | Partial idea, no build | High | **Not met.** Needs a Merkle-root reward pool, receipt NFTs, root timelock and a several-hundred-leaf chipnet demo. It does not fit a personal vault, and there was not enough time to do it well. |
 | Stablecoin Bridge (BCH BLAZE) | $750 PUSD | No | Very high | **Not met.** Needs a cross-chain bridge or swap (e.g. USDC on ETH ↔ PUSD) with WalletConnect on the other chain. Cubby has no token bridge; building one is a separate product and would need mainnet liquidity. |
 
@@ -49,7 +49,7 @@ Cubby stays one product. Each bounty feature is a small add-on to the passkey va
 **Gaps:**
 - A mainnet run (fund, claim, manage with tiny amounts). The script `scripts/bounties/allowance-chipnet.ts` is chipnet-only on purpose; it needs Henry's go-ahead, a funded mainnet address and a cap.
 - Optional SolidCash PRs, which are external posts that need Henry.
-- A UI lifecycle screen (see `docs/integration/allowance.md`).
+- A mainnet UI run. The `/allowance` screen shows the chipnet lifecycle (create, top up with phone lock, claim, history with txids).
 
 ## Migrate to XO / Build with XO
 

@@ -31,7 +31,7 @@ function SendInner() {
   const { sats } = useBalances(s.address, s.networkId);
   const price = usePrice();
   const [amount, setAmount] = useState(shot.get('sheet') === 'confirm' ? '0.01005741' : '');
-  const [dest, setDest] = useState(shot.get('sheet') === 'confirm' ? 'bchtest:qpl93ln6r425c60fqhc25sf4sh59fmwwrufym39tj0' : '');
+  const [dest, setDest] = useState(shot.get('sheet') === 'confirm' ? 'bchtest:qpl93ln6r425c60fqhc25sf4sh59fmwwrufym39tj0' : (shot.get('to') ?? ''));
   const [err, setErr] = useState<string | null>(null);
   const [pick, setPick] = useState(shot.get('sheet') === 'assets');
   const [confirm, setConfirm] = useState(shot.get('sheet') === 'confirm');

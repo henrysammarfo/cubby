@@ -31,6 +31,8 @@ MAP = [
     ('how', None, None),
     ('terms', None, None),
     ('privacy', None, None),
+    ('allowance', '07.jpg', 'left'),
+    ('id', '06.jpg', 'right'),
 ]
 
 def crop_phone(path: Path, side: str) -> Image.Image:

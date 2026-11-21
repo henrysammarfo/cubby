@@ -2,7 +2,7 @@
 
 Logic: `src/bounties/identity.ts` (`nostr-tools` is already a dependency).
 
-Suggested route: `/id`. Plain words: "Link your Nostr profile", "Proof on chain", "Sign in with Cubby ID".
+Route: `/id`, linked from Settings.  Plain words: "Link your Nostr profile", "Proof on chain", "Sign in with Cubby ID".
 
 1. **Link.** The user pastes or creates a Nostr key, or uses a NIP-07 extension.
    - Compute `statementOf(claimFor(...))`.

@@ -6,16 +6,16 @@ Sources checked 21 November 2026, Accra (UTC+0):
 - Official bounties: https://bchblaze.cash/bounties/
 - Mainnet-track rules as published for BLAZE 2026 (live demo, WizardConnect, Widget Factory template, banner CashTokens address, originality, Telegram confirmation, roll call, and at least one mainnet send feature). Jeremy’s Telegram enforcement notes are treated as binding for the same items (banner address, WizardConnect not only WalletConnect v2, no hanging connect, gap-limit scan).
 
-Cubby is entered on the **Mainnet track**. It does not enter the Media track. Sponsor bounty work is on the `bounties` branch; see `docs/BOUNTY-PLAN.md` for exact status per bounty.
+Cubby is entered on the **Mainnet track**. It does not enter the Media track. Sponsor bounty logic is merged into `main` (`src/bounties/`, `docs/proofs/`). Screens: `/allowance` and `/id`. See `docs/BOUNTY-PLAN.md` for exact status per bounty.
 
 ## Mainnet track
 
 | Requirement | Status | Working code | Live proof |
 |---|---|---|---|
 | Register on DoraHacks before 13 Nov and submit by Sun 22 Nov 14:00 UTC | **Met by Henry for registration.** Submit is **not sent yet**. | n/a | Henry confirmed registration and roll call (MEMORY.md). Draft only: `/workspace/bch/submission/DORA_BUIDL.md`. |
-| Live, clickable demo judges can open | **Met** | `web/index.html`, deployed from this repo | https://cubby-liart-six.vercel.app |
+| Live, clickable demo judges can open | **Met** | `app/page.tsx` and the box routes, deployed from this repo | https://cubby-liart-six.vercel.app |
 | WizardConnect integration | **Met** | `web/wizard.ts` (`startConnect`, `requestWalletSend`); `@wizardconnect/core` + `@wizardconnect/dapp`; relay `wss://relay.riften.net:443`. Disconnect watch: `src/wallet-link.ts`. Address scan in batches of 20: `src/wallet-scan.ts`. | Live Receive screen, “Or connect a wallet you already use”. |
-| Banner with presentation, source, and EMBER 2026 CashTokens address | **Partial** | Banner in `web/index.html` (`#widgetLink`, `#repoLink`, `#emberAddress`). Address `bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj` from `src/banner.ts`. | Visible on the live site. The presentation link is the official Widget Factory **template**; the project deck is **not built**. |
+| Banner with presentation, source, and EMBER 2026 CashTokens address | **Partial** | Banner in `ui/Banner.tsx`, mounted from `app/layout.tsx`. Address `bitcoincash:zpuu5t2lxyhykjnfcl8mtxa792pfy88urqv7wrwrmj` from `src/banner.ts`. | Visible on the live site. The presentation link is the official Widget Factory **template**; the project deck is **not built**. |
 | Original work built during BLAZE (no minor tweak of an earlier product) | **Met** | First commit `18c652e` (17 Nov 2026) | https://github.com/henrysammarfo/cubby/commit/18c652e (repo still private until Henry flips it). |
 | Confirm the team is real in the BLAZE Telegram | **Not met (draft only)** | n/a | `/workspace/bch/submission/TELEGRAM_CHECKIN.md` is unsent. |
 | At least one project representative attended a prep stream (roll call) | **Met (Henry)** | n/a | Henry confirmed roll call. |
@@ -39,7 +39,7 @@ On-chain proof that this script ran: chipnet spend `2ac70a7cacf837471ae8997cbf45
 See `docs/BOUNTY-PLAN.md`. In short:
 - SolidCash: partly met (chipnet done, mainnet pending Henry).
 - XO Migrate and Build: partly met (template and tests done, chipnet invitation and personal feedback pending).
-- Paytaca identity: mostly met (chipnet done, public relay publish and UI pending).
+- Paytaca identity: mostly met (chipnet done, `/id` screen shows the proof; public relay publish pending).
 - FoldingCash and Stablecoin Bridge: not met.
 
 ## After the deadline

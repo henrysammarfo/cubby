@@ -79,7 +79,7 @@ npx tsx scripts/ui-smoke.ts        # screenshots of every route at 390 and 1440
 
 The app is Next.js 15 (App Router) in `app/`. Protocol code is unchanged in `src/`. Live passkey and WizardConnect clients stay in `web/passkey.ts` and `web/wizard.ts`.
 
-Routes: `/` landing, `/welcome` (splash, slides, hello, face, ready), `/wallet`, `/wallet/bch`, `/receive`, `/send`, `/send/success`, `/activity`, `/activity/[tx]`, `/connect`, `/settings`, `/how-it-works`, `/terms`, `/privacy`. `/send/review` redirects to `/send`. Add `?demo=1` to open the labelled demo box (real chipnet payments `8f9e1dd3…` and `2ac70a7c…`).
+Routes: `/` landing, `/welcome` (splash, slides, hello, face, ready), `/wallet`, `/wallet/bch`, `/receive`, `/send`, `/send/success`, `/activity`, `/activity/[tx]`, `/connect`, `/settings`, `/allowance`, `/id`, `/how-it-works`, `/terms`, `/privacy`. `/send/review` redirects to `/send`. Add `?demo=1` to open the labelled demo box (real chipnet payments `8f9e1dd3…` and `2ac70a7c…`).
 
 `harness/passkey-device-check.html` is still there for collecting a raw device assertion.
 

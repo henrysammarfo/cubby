@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ChevronRight, Fingerprint, Info, Lock, Globe } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Fingerprint, Info, Lock, Globe } from 'lucide-react';
 import { AppShell, copy, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
 import { useSession } from '@/lib/client/session';
@@ -32,6 +32,17 @@ function SettingsInner() {
               </span></span>
             </span>
           </div>
+        </section>
+
+        <div className="ghead"><b>Cubby ID</b></div>
+        <section className="group">
+          <Link className="cell" href={'/id' + suffix}>
+            <span className="lft">
+              <span className="logo txt"><BadgeCheck size={18} aria-hidden /></span>
+              <span><span className="ct">Cubby ID</span><span className="cs" style={{ display: 'block' }}>{s.demo ? 'Verified demo profile' : 'Link a Nostr profile, or find someone'}</span></span>
+            </span>
+            <ChevronRight size={16} className="chev" aria-hidden />
+          </Link>
         </section>
 
         <div className="ghead"><b>Network</b></div>

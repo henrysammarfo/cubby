@@ -41,7 +41,8 @@
     "web/wizard.ts",
     "web/hold.ts",
     ".next/types/**/*.ts",
-    "css.d.ts"
+    "css.d.ts",
+    "docs/proofs/**/*.json"
   ],
   "exclude": [
     "node_modules",

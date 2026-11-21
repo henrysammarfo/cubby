@@ -24,6 +24,8 @@ const ROUTES: { name: string; path: string }[] = [
   { name: 'receipt', path: '/activity/2ac70a7cacf837471ae8997cbf45e620551ecbc1542eced0f0748e9c7973c993?demo=1' },
   { name: 'connect', path: '/connect?demo=1' },
   { name: 'settings', path: '/settings?demo=1' },
+  { name: 'allowance', path: '/allowance?demo=1' },
+  { name: 'id', path: '/id?demo=1' },
   { name: 'how', path: '/how-it-works' },
   { name: 'terms', path: '/terms' },
   { name: 'privacy', path: '/privacy' },

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowDownLeft, ArrowUpRight, Bell, ChevronRight, Plus, Search, Wallet as WalletIcon } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Bell, ChevronRight, PiggyBank, Plus, Search, Wallet as WalletIcon } from 'lucide-react';
 import { AppShell, Money, useDemoSuffix } from '@/ui/kit';
 import { Gate } from '@/ui/Gate';
 import { ActivityList } from '@/ui/Activity';
@@ -86,6 +86,18 @@ function WalletInner() {
           </section>
         )}
 
+
+        <div className="ghead"><b>Pocket money</b></div>
+        <Link className="jar-card" href={'/allowance' + suffix}>
+          <span className="mark"><PiggyBank size={22} aria-hidden /></span>
+          <span className="rn">
+            <span className="nm">Pocket money jar</span>
+            <span className="sb">{s.demo
+              ? `0.0002 BCH each time · demo on the test network`
+              : 'Start a jar, or open one you already made'}</span>
+          </span>
+          <span className="chev2"><ChevronRight size={16} aria-hidden /></span>
+        </Link>
         <div className="ghead"><b>Activity</b><Link className="link" href={'/activity' + suffix}>See all</Link></div>
         {empty ? (
           <div className="empty">

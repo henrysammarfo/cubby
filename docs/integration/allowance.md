@@ -2,7 +2,7 @@
 
 Logic: `src/bounties/allowance.ts`. No new dependencies.
 
-Suggested route: `/jar`. Plain words: "Pocket money jar", not "covenant" or "contract".
+Route: `/allowance`. A jar card also sits on the wallet home. Plain words: "Pocket money jar", not "covenant" or "contract".
 
 1. **Start a jar.** Ask for the child's address, the amount each time, and how often (Daily = 144 blocks, Weekly = 1008).
    - Call `buildJar({ ownerVaultLock: vault.lockingBytecode, childLock, allowance, periodBlocks })`.
