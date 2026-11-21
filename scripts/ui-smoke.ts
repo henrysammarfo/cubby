@@ -45,7 +45,7 @@ const prepare = async (page: Page, name: string) => {
   }).catch(() => undefined);
   if (name === 'landing' || name === 'film' || name === 'deck') {
     if (name === 'landing') {
-      await page.getByText('A box only your face').first().waitFor({ timeout: 15000 });
+      await page.getByText('is the key').first().waitFor({ timeout: 15000 });
     } else if (name === 'film') {
       await page.getByText('The film').first().waitFor({ timeout: 15000 });
     } else {
