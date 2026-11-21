@@ -19,6 +19,33 @@ const rpId = (): string => location.hostname;
 
 export const currentRpId = rpId;
 
+const withTimeout = async <T>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
+
+const assertPasskeyAvailable = async (): Promise<void> => {
+  if (!window.isSecureContext || !navigator.credentials || typeof window.PublicKeyCredential === 'undefined') {
+    throw new Error('This browser cannot create a phone lock. Open this site in a current Safari, Chrome, or Edge window over HTTPS, on a device with a screen lock.');
+  }
+  if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!available) {
+      throw new Error('This device does not have a face or fingerprint lock the site can use. Open this page on a phone, or a computer with Windows Hello or Touch ID.');
+    }
+  }
+};
+
+
 export const loadVault = (): StoredVault | null => {
   const raw = localStorage.getItem(STORE);
   if (!raw) return null;
@@ -42,10 +69,11 @@ export const vaultFromStored = (stored: StoredVault): { params: VaultParams; vau
 };
 
 export const createDeviceLock = async (network: Network): Promise<StoredVault> => {
+  await assertPasskeyAvailable();
   const id = location.hostname;
   const challenge = crypto.getRandomValues(new Uint8Array(32));
   const userId = crypto.getRandomValues(new Uint8Array(16));
-  const credential = (await navigator.credentials.create({
+  const credential = (await withTimeout(navigator.credentials.create({
     publicKey: {
       rp: { name: 'Cubby', id },
       user: { id: userId, name: 'cubby', displayName: 'Cubby' },
@@ -54,7 +82,7 @@ export const createDeviceLock = async (network: Network): Promise<StoredVault> =
       authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
       attestation: 'none',
     },
-  })) as PublicKeyCredential | null;
+  }), 45_000, 'The device did not finish creating a lock. Check the screen lock prompt, or try again.')) as PublicKeyCredential | null;
   if (!credential) throw new Error('The device did not create a lock.');
   const attestation = credential.response as AuthenticatorAttestationResponse;
   if (typeof attestation.getPublicKey !== 'function') {
@@ -78,14 +106,15 @@ export const createDeviceLock = async (network: Network): Promise<StoredVault> =
 };
 
 export const requestAssertion = async (stored: StoredVault, challenge: Uint8Array): Promise<Assertion> => {
-  const credential = (await navigator.credentials.get({
+  await assertPasskeyAvailable();
+  const credential = (await withTimeout(navigator.credentials.get({
     publicKey: {
       challenge: challenge.buffer as ArrayBuffer,
       rpId: stored.rpId,
       userVerification: 'required',
       allowCredentials: [{ type: 'public-key', id: fromBase64url(stored.credentialId).buffer as ArrayBuffer }],
     },
-  })) as PublicKeyCredential | null;
+  }), 45_000, 'The device did not finish approving the send. Check the screen lock prompt, or try again.')) as PublicKeyCredential | null;
   if (!credential) throw new Error('The device did not approve the send.');
   const response = credential.response as AuthenticatorAssertionResponse;
   return {
